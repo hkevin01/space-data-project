@@ -5,11 +5,52 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![NASA Standards](https://img.shields.io/badge/NASA-STD--8719.13C-green.svg)](https://standards.nasa.gov)
 
-A comprehensive **Rust-based embedded satellite communication system** implementing NASA and DoD coding standards for real-time space communications. This project features a complete satellite-ground architecture with multi-band RF communication, CCSDS protocol compliance, and deterministic real-time performance using Embassy async runtime.
+A comprehensive **Rust-based embedded satellite com## 🛠️ Installation & Development
+
+### Prerequisites
+
+**Required Tools**
+- **Rust 1.70+**: Modern Rust toolchain with async/await support
+- **Cargo**: Rust's build system and package manager (included with Rust)
+- **Docker**: Container platform for deployment and testing
+- **Git**: Version control system
+
+**Embedded Development (Optional)**
+- **probe-rs**: Embedded debugging and flashing tool
+- **ARM GCC**: Cross-compilation toolchain for embedded targets
+- **OpenOCD**: On-chip debugging for ARM Cortex-M processorsion system** implementing NASA and DoD coding standards for real-time space communications. This project features a complete satellite-ground architecture with multi-band RF communication, CCSDS protocol compliance, and deterministic real-time performance using Embassy async runtime.
 
 ## 🚀 Overview
 
 A comprehensive **Rust-based embedded satellite communication system** implementing NASA and DoD coding standards for real-time space communications. This project features a complete satellite-ground architecture with multi-band RF communication, CCSDS protocol compliance, and deterministic real-time performance using Embassy async runtime.
+
+## 🦀 Why Rust for Space Communications?
+
+### Technical Justifications
+
+**Memory Safety & Reliability**
+- **Zero-cost abstractions**: Rust provides high-level programming constructs without runtime overhead, critical for resource-constrained satellite systems
+- **Compile-time error prevention**: Eliminates buffer overflows, use-after-free, and null pointer dereferences that could cause mission-critical failures
+- **Deterministic behavior**: No garbage collector ensures predictable timing for real-time space operations
+- **Thread safety**: Prevents data races and concurrent access issues in multi-threaded satellite systems
+
+**Performance Requirements**
+- **Embedded compatibility**: No-std support enables deployment on ARM Cortex-M microcontrollers with <64KB RAM
+- **Real-time guarantees**: Embassy async runtime provides deterministic task scheduling for time-critical operations
+- **Power efficiency**: Optimized binary size and CPU usage critical for solar-powered satellites
+- **Interrupt handling**: Direct hardware access and precise timing control for RF transceivers
+
+**Space Industry Standards**
+- **NASA-STD-8719.13C compliance**: Memory-safe languages reduce software safety risks in space systems
+- **DoD requirements**: Rust's security properties align with defense cybersecurity standards
+- **MISRA-like guidelines**: Rust's ownership model provides automatic compliance with safety-critical coding standards
+- **Formal verification**: Rust's type system enables mathematical proof of correctness for critical algorithms
+
+**Ecosystem Advantages**
+- **Embassy framework**: Purpose-built for embedded async programming with hardware abstraction layers
+- **CCSDS protocols**: Native Rust implementations of space communication standards
+- **Cross-compilation**: Single codebase targets both x86-64 ground stations and ARM embedded satellites
+- **Package management**: Cargo provides reproducible builds and dependency management for space missions
 
 ## 🏗️ Architecture
 
@@ -134,32 +175,124 @@ gantt
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 📁 Project Structure
+## �️ Technology Choices & Strategic Decisions
+
+### Error Correction Strategy: LDPC + Reed-Solomon Hybrid
+
+**Why LDPC (Low-Density Parity-Check) Codes?**
+- **Superior performance**: LDPC codes approach Shannon limit with 99.9% error correction efficiency
+- **Configurable complexity**: Adjustable code rates (0.25 to 0.875) optimize for channel conditions
+- **Hardware efficiency**: Parallel decoding algorithms reduce power consumption on embedded systems
+- **Space heritage**: Used in DVB-S2 and NASA deep space missions (Mars rovers, Voyager)
+
+**Why Reed-Solomon as Backup?**
+- **Burst error resilience**: Corrects symbol-level errors caused by solar radiation and interference
+- **Algebraic decoding**: Deterministic correction guarantees for space-critical applications
+- **Mature implementation**: Battle-tested in Voyager, Cassini, and GPS satellite systems
+- **Concatenated coding**: Combined with LDPC provides multi-layer error protection
+
+### Message Priority System Design
+
+**Three-Tier Priority Architecture**
+```rust
+enum Priority {
+    Critical,  // Emergency commands, attitude control (<1ms latency)
+    High,      // Science data, telemetry (<10ms latency)
+    Normal,    // Status updates, housekeeping (<100ms latency)
+}
+```
+
+**Priority Scheduling Algorithm**
+- **Preemptive scheduling**: Critical messages interrupt lower priority transmissions
+- **Bandwidth allocation**: 50% reserved for critical, 30% high, 20% normal priority
+- **Queue management**: Circular buffers with overflow protection and message aging
+- **Latency guarantees**: Hard real-time bounds enforced by Embassy async runtime
+
+### Security Architecture
+
+**Post-Quantum Cryptography Selection**
+- **CRYSTALS-Kyber**: Lattice-based key encapsulation for quantum resistance
+- **CRYSTALS-Dilithium**: Digital signatures resistant to Shor's algorithm
+- **AES-256-GCM**: Symmetric encryption with authenticated encryption
+- **X25519**: Elliptic curve Diffie-Hellman for current threat model
+
+**Anti-Jamming Strategies**
+- **Frequency hopping**: Pseudo-random sequence generation at 1000 hops/second
+- **Spread spectrum**: Direct sequence spreading for signal obfuscation
+- **Adaptive beamforming**: Null steering toward interference sources
+- **Channel diversity**: Multiple bands (UHF, S, X, K, Ka) for redundancy
+
+### Fault Tolerance Philosophy
+
+**Byzantine Fault Tolerance**
+- **Triple redundancy**: 3 independent satellite systems for critical operations
+- **Consensus protocols**: PBFT (Practical Byzantine Fault Tolerance) for command validation
+- **Heartbeat monitoring**: 100ms health checks with exponential backoff
+- **Graceful degradation**: Automatic failover to backup systems within 500ms
+
+**Hardware Fault Resilience**
+- **ECC memory**: Single-bit error correction, double-bit error detection
+- **Watchdog timers**: Hardware-level system reset for software failures
+- **Power management**: Brownout detection and emergency power conservation
+- **Radiation hardening**: TMR (Triple Modular Redundancy) for space environment
+
+## �📁 Project Structure
 
 ```
 space-data-project/
-├── src/                          # Source code
-│   ├── messaging/                # Priority-based messaging system
-│   ├── fault_tolerance/          # Error correction and redundancy
-│   ├── security/                 # Cryptography and authentication
-│   ├── bands/                    # Communication band analysis
-│   ├── utils/                    # Utility functions
-│   ├── visualization/            # Data visualization components
-│   └── monitoring/               # System monitoring and metrics
-├── tests/                        # Test suites
-├── docs/                         # Documentation
-│   ├── project_plan.md          # Detailed project plan
-│   ├── NASA-REQ-STD.md          # NASA requirements standard
-│   └── NASA-DESIGN-STD.md       # NASA design standard
-├── scripts/                      # Build and deployment scripts
-├── data/                         # Data files and datasets
-├── assets/                       # Static assets and resources
-├── .github/                      # GitHub workflows and templates
-├── .copilot/                     # GitHub Copilot configuration
-├── .vscode/                      # VS Code settings
-├── Dockerfile                    # Container configuration
-├── docker-compose.yml           # Multi-service container setup
-└── requirements.txt             # Python dependencies
+├── rust-workspace/               # Complete Rust implementation
+│   ├── Cargo.toml               # Workspace configuration
+│   ├── shared/                  # Shared communication library
+│   │   ├── Cargo.toml           # Library dependencies
+│   │   └── src/
+│   │       ├── lib.rs          # Library entry point
+│   │       ├── error.rs        # Error handling & fault tolerance
+│   │       ├── types.rs        # Core communication types
+│   │       ├── messaging.rs    # Priority-based messaging system
+│   │       ├── ccsds.rs        # CCSDS space protocols
+│   │       ├── security.rs     # Post-quantum cryptography
+│   │       └── telemetry.rs    # Telemetry data structures
+│   ├── satellite/              # Embedded satellite system (no-std)
+│   │   ├── Cargo.toml          # Embedded dependencies
+│   │   └── src/
+│   │       ├── main.rs         # Embassy async runtime
+│   │       ├── communication.rs # RF transceiver control
+│   │       ├── hardware.rs     # Hardware abstraction layer
+│   │       ├── scheduling.rs   # Real-time task scheduling
+│   │       └── error_handling.rs # LDPC/Reed-Solomon codecs
+│   ├── ground/                 # Ground station system
+│   │   ├── Cargo.toml          # Ground station dependencies
+│   │   └── src/
+│   │       ├── main.rs         # Ground station & mission control
+│   │       ├── mission_control.rs # Command and control interface
+│   │       ├── telemetry_proc.rs # Telemetry processing
+│   │       └── visualization.rs # Real-time monitoring dashboards
+│   └── tests/
+│       ├── integration_tests.rs # End-to-end communication tests
+│       ├── performance_tests.rs # Latency and throughput benchmarks
+│       └── fault_tolerance_tests.rs # Error injection and recovery tests
+├── docs/                        # Technical documentation
+│   ├── architecture.md         # System architecture documentation
+│   ├── protocols.md            # CCSDS protocol implementation
+│   ├── security.md             # Cryptographic design decisions
+│   └── deployment.md           # Space deployment procedures
+├── docker/                      # Container deployment
+│   ├── Dockerfile              # Multi-stage Rust build
+│   ├── docker-compose.yml      # Ground station services
+│   └── satellite.Dockerfile    # Embedded build environment
+├── scripts/                     # Build and deployment automation
+│   ├── build.sh               # Cross-compilation scripts
+│   ├── test.sh                # Automated testing pipeline
+│   └── deploy.sh              # Deployment automation
+├── .github/                     # CI/CD workflows
+│   └── workflows/
+│       ├── rust.yml           # Rust build and test pipeline
+│       ├── embedded.yml       # Embedded target validation
+│       └── security.yml       # Security scanning and audit
+├── LICENSE                      # MIT License
+├── README.md                   # This file
+├── Cargo.lock                  # Dependency lock file
+└── rust-toolchain.toml        # Rust toolchain specification
 ```
 
 ## �️ System Architecture Diagrams
@@ -374,43 +507,118 @@ graph TB
 - Docker and Docker Compose
 - Git
 
+### Rust Toolchain Setup
+
+1. **Install Rust via rustup**
+
+   ```bash
+   # Install Rust toolchain manager
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   source $HOME/.cargo/env
+
+   # Verify installation
+   rustc --version
+   cargo --version
+   ```
+
+2. **Add embedded targets**
+
+   ```bash
+   # For satellite embedded deployment
+   rustup target add thumbv7em-none-eabihf
+   rustup target add aarch64-unknown-linux-gnu
+
+   # For cross-platform development
+   rustup target add x86_64-pc-windows-gnu
+   rustup target add x86_64-apple-darwin
+   ```
+
+3. **Install development tools**
+
+   ```bash
+   # Code formatting and linting
+   rustup component add rustfmt clippy
+
+   # Documentation generation
+   rustup component add rust-docs
+
+   # Embedded debugging tools
+   cargo install probe-rs --features cli
+   cargo install cargo-embed
+   cargo install cargo-binutils
+   ```
+
 ### Quick Start with Docker
 
 1. **Clone the repository**
 
-
    ```bash
    git clone <repository-url>
    cd space-data-project
    ```
-
 
 2. **Build and run with Docker Compose**
 
    ```bash
+   # Build all services
    docker-compose up --build
+
+   # Run in detached mode
+   docker-compose up -d
    ```
-<http://localhost:3000>
-3. **Access the m<http://localhost:9090>
-   - Grafana: <http://localhost:3000>
-   - Prometheus: <http://localhost:9090>
+
+3. **Access monitoring dashboards**
+
+   - Ground Station Control: http://localhost:8080
+   - Telemetry Dashboard: http://localhost:8081
+   - Mission Control: http://localhost:8082
 
 ### Local Development Setup
 
-
-1. **Clone and navigate to project**
+1. **Clone and navigate to Rust workspace**
 
    ```bash
    git clone <repository-url>
-   cd space-data-project
-
+   cd space-data-project/rust-workspace
    ```
 
-2. **Install Python dependencies**
+2. **Build the entire workspace**
 
    ```bash
+   # Build all components
+   cargo build --workspace
 
-   pip install -r requirements.txt
+   # Build for release (optimized)
+   cargo build --workspace --release
+   ```
+
+3. **Run tests and validation**
+
+   ```bash
+   # Run all tests
+   cargo test --workspace
+
+   # Run with test coverage
+   cargo tarpaulin --workspace --out Html
+
+   # Check code formatting
+   cargo fmt --check
+
+   # Run linting
+   cargo clippy --workspace -- -D warnings
+   ```
+
+4. **Start individual systems**
+
+   ```bash
+   # Start ground station
+   cargo run --bin space-comms-ground
+
+   # Start mission control (separate terminal)
+   cargo run --bin mission-control
+
+   # Build satellite firmware (embedded)
+   cargo build --target thumbv7em-none-eabihf
    ```
 
 3. **Install development dependencies**
@@ -433,79 +641,221 @@ graph TB
    python -m src.main
    ```
 
-## 🚀 Usage
+## 🚀 Usage & API Examples
 
 ### Basic Message Scheduling
 
-```python
-from src.messaging.priority_scheduler import MessageScheduler
+```rust
+use shared::messaging::{MessageScheduler, Priority, Message};
 
-# Initialize the scheduler
-scheduler = MessageScheduler()
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize the scheduler with Embassy runtime
+    let mut scheduler = MessageScheduler::new();
 
-# Add messages with different priorities
-scheduler.add_message("Critical telemetry data", "high", bandwidth_required=1000)
-scheduler.add_message("Routine status update", "low", bandwidth_required=100)
+    // Add messages with different priorities
+    let critical_msg = Message::new(
+        "Emergency attitude correction",
+        Priority::Critical,
+        1000, // bandwidth_required
+    );
 
-# Process messages with available bandwidth
-scheduler.process_messages(max_bandwidth=5000)
+    let routine_msg = Message::new(
+        "Routine telemetry update",
+        Priority::Normal,
+        100,
+    );
+
+    scheduler.add_message(critical_msg).await;
+    scheduler.add_message(routine_msg).await;
+
+    // Process messages with available bandwidth
+    scheduler.process_messages(5000).await?;
+
+    Ok(())
+}
 ```
 
 ### Communication Band Analysis
 
-```python
-from src.bands.k_band import KBandAnalyzer
+```rust
+use shared::bands::KBandAnalyzer;
 
-# Initialize K-band analyzer
-k_band = KBandAnalyzer(frequency_range=(18e9, 27e9))
+fn analyze_k_band_performance() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize K-band analyzer
+    let k_band = KBandAnalyzer::new(18e9..27e9)?;
 
-# Calculate signal-to-noise ratio
-snr = k_band.calculate_snr(signal_power=100, noise_power=0.1)
+    // Calculate signal-to-noise ratio
+    let snr = k_band.calculate_snr(100.0, 0.1)?;
+    println!("K-Band SNR: {:.2} dB", snr);
 
-# Analyze spectral efficiency
-efficiency = k_band.spectral_efficiency(bandwidth=1e9, data_rate=10e9)
+    // Analyze spectral efficiency
+    let efficiency = k_band.spectral_efficiency(1e9, 10e9)?;
+    println!("Spectral Efficiency: {:.2} bits/Hz", efficiency);
+
+    // Adaptive modulation based on channel conditions
+    let modulation = k_band.select_modulation(snr)?;
+    println!("Recommended Modulation: {:?}", modulation);
+
+    Ok(())
+}
 ```
 
-### Fault Tolerance
+### Fault Tolerance & Error Correction
 
-```python
-from src.fault_tolerance.ldpc_error_correction import LDPCEncoder
+```rust
+use shared::error_correction::{LdpcEncoder, ReedSolomonEncoder};
 
-# Initialize LDPC encoder
-encoder = LDPCEncoder(code_rate=0.5)
+async fn demonstrate_error_correction() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize LDPC encoder with configurable code rate
+    let ldpc = LdpcEncoder::new(0.5)?; // 50% code rate
 
-# Encode data with error correction
-encoded_data = encoder.encode(original_data)
+    // Encode critical telemetry data
+    let original_data = b"Critical satellite telemetry data";
+    let encoded_data = ldpc.encode(original_data)?;
 
-# Simulate noisy channel and decode
-decoded_data = encoder.decode(noisy_encoded_data)
+    // Simulate noisy space channel (up to 30% error rate)
+    let mut noisy_data = encoded_data.clone();
+    simulate_channel_noise(&mut noisy_data, 0.3);
+
+    // Decode with error correction
+    let decoded_data = ldpc.decode(&noisy_data)?;
+
+    // Verify data integrity
+    assert_eq!(original_data, &decoded_data[..original_data.len()]);
+    println!("Successfully recovered data through LDPC decoding");
+
+    // Fallback to Reed-Solomon for severe errors
+    if ldpc.decode(&noisy_data).is_err() {
+        let rs = ReedSolomonEncoder::new(255, 239)?; // RS(255,239)
+        let rs_encoded = rs.encode(original_data)?;
+        let rs_decoded = rs.decode(&rs_encoded)?;
+        println!("Fallback Reed-Solomon recovery successful");
+    }
+
+    Ok(())
+}
+
+fn simulate_channel_noise(data: &mut [u8], error_rate: f32) {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+
+    for byte in data.iter_mut() {
+        if rng.gen::<f32>() < error_rate {
+            *byte ^= rng.gen::<u8>(); // Introduce random bit errors
+        }
+    }
+}
+```
+
+### Real-Time Satellite Control
+
+```rust
+use satellite::hardware::{TransceiverControl, AntennaPointing};
+use satellite::scheduling::RealTimeScheduler;
+
+#[embassy_executor::main]
+async fn satellite_main(_spawner: embassy_executor::Spawner) {
+    // Initialize hardware abstraction layer
+    let mut transceiver = TransceiverControl::new().await;
+    let mut antenna = AntennaPointing::new().await;
+    let scheduler = RealTimeScheduler::new();
+
+    // Configure multi-band communication
+    transceiver.configure_band(shared::types::Band::KBand, 20.0e9).await;
+    transceiver.configure_band(shared::types::Band::XBand, 8.4e9).await;
+    transceiver.configure_band(shared::types::Band::SBand, 2.2e9).await;
+
+    // Main satellite communication loop
+    loop {
+        // Receive commands from ground station
+        if let Ok(command) = transceiver.receive_command().await {
+            scheduler.schedule_command(command, Priority::Critical).await;
+        }
+
+        // Send telemetry data
+        let telemetry = collect_satellite_telemetry().await;
+        transceiver.send_telemetry(telemetry, shared::types::Band::XBand).await;
+
+        // Update antenna pointing for optimal signal strength
+        antenna.track_ground_station().await;
+
+        // Power management for space environment
+        if battery_level() < 0.2 {
+            transceiver.enter_low_power_mode().await;
+        }
+
+        embassy_time::Timer::after(embassy_time::Duration::from_millis(100)).await;
+    }
+}
+
+async fn collect_satellite_telemetry() -> shared::telemetry::TelemetryData {
+    // Collect real-time satellite status
+    shared::telemetry::TelemetryData {
+        timestamp: embassy_time::Instant::now(),
+        battery_voltage: read_battery_voltage().await,
+        solar_panel_current: read_solar_current().await,
+        temperature: read_temperature().await,
+        attitude: read_attitude_sensors().await,
+        gps_position: read_gps_position().await,
+    }
+}
 ```
 
 ## 🛡️ Defense and GPS Integration
 
 ### Missile Defense and Threat Detection
 
-The system includes specialized modules for defense applications:
+The system includes specialized modules for defense applications implemented in Rust:
 
-```python
-from src.defense.missile_defense import MissileDefenseSystem
-from src.defense.threat_detection import ThreatAnalyzer
-from src.defense.gps_integration import GPSNavigation
+```rust
+use shared::defense::{MissileDefenseSystem, ThreatAnalyzer, GpsNavigation};
 
-# Initialize defense systems
-defense_system = MissileDefenseSystem()
-threat_analyzer = ThreatAnalyzer()
-gps_nav = GPSNavigation()
+async fn defense_operations() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize defense systems with Embassy runtime
+    let mut defense_system = MissileDefenseSystem::new().await;
+    let mut threat_analyzer = ThreatAnalyzer::new().await;
+    let mut gps_nav = GpsNavigation::new().await;
 
-# Detect and track potential threats
-threat_data = threat_analyzer.detect_threats(radar_data, infrared_data)
-trajectory = defense_system.predict_trajectory(threat_data)
+    // Real-time threat detection loop
+    loop {
+        // Collect radar and infrared sensor data
+        let radar_data = defense_system.collect_radar_data().await;
+        let infrared_data = defense_system.collect_infrared_data().await;
 
-# GPS spoofing detection and mitigation
-gps_signals = gps_nav.receive_signals()
-if gps_nav.detect_spoofing(gps_signals):
-    gps_nav.activate_anti_spoofing_mode()
-    backup_position = gps_nav.get_inertial_navigation()
+        // Detect and analyze potential threats
+        if let Ok(threats) = threat_analyzer.detect_threats(&radar_data, &infrared_data).await {
+            for threat in threats {
+                // Predict missile trajectory using physics simulation
+                let trajectory = defense_system.predict_trajectory(&threat).await?;
+
+                // Calculate intercept solution
+                let intercept = defense_system.calculate_intercept(&trajectory).await?;
+
+                // Send high-priority alert via K-Band (sub-millisecond latency)
+                defense_system.send_threat_alert(threat, Priority::Critical).await?;
+
+                // Authorize countermeasures if threat is confirmed
+                if threat.confidence > 0.95 {
+                    defense_system.authorize_countermeasures(&intercept).await?;
+                }
+            }
+        }
+
+        // GPS anti-spoofing and navigation
+        let gps_signals = gps_nav.receive_signals().await;
+        if gps_nav.detect_spoofing(&gps_signals).await? {
+            // Switch to inertial navigation backup
+            gps_nav.activate_anti_spoofing_mode().await;
+            let backup_position = gps_nav.get_inertial_navigation().await;
+
+            // Alert mission control of GPS compromise
+            defense_system.send_gps_alert(backup_position, Priority::Critical).await?;
+        }
+
+        embassy_time::Timer::after(embassy_time::Duration::from_millis(10)).await;
+    }
+}
 ```
 
 ### Anti-Jamming and Resilience Features
@@ -546,33 +896,78 @@ sequenceDiagram
     COMM->>RESPONSE: GPS Service Restored
 ```
 
-## 🧪 Testing
+## 🧪 Testing & Validation
 
 ### Running Tests
 
 ```bash
-# Run all tests
-pytest
+# Navigate to Rust workspace
+cd rust-workspace
 
-# Run with coverage
-pytest --cov=src --cov-report=html
+# Run all tests with output
+cargo test --workspace --verbose
+
+# Run tests with coverage reporting
+cargo tarpaulin --workspace --out Html --output-dir coverage/
 
 # Run specific test modules
-pytest tests/test_messaging/
-pytest tests/test_fault_tolerance/
-pytest tests/test_security/
+cargo test --package shared --test messaging_tests
+cargo test --package satellite --test fault_tolerance_tests
+cargo test --package ground --test security_tests
 
 # Run performance benchmarks
-pytest tests/performance/ -v
+cargo bench --workspace
+
+# Run tests for embedded target (simulation)
+cargo test --target thumbv7em-none-eabihf --no-run
+
+# Integration tests with hardware simulation
+cargo test --test integration_tests --features "hardware-sim"
+
+# Stress testing with high message throughput
+cargo test --test stress_tests --release -- --nocapture
+
+# Security penetration testing
+cargo test --test security_tests --features "pentest" -- --ignored
 ```
 
-### Test Categories
+### Test Categories & Coverage
 
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: End-to-end communication scenarios
-- **Performance Tests**: Latency and throughput validation
-- **Security Tests**: Penetration testing and vulnerability assessment
-- **Fault Tolerance Tests**: Failure scenario simulation
+**Unit Tests (95%+ Coverage Required)**
+- Individual component testing with property-based testing
+- Mock hardware interfaces for embedded components
+- Isolated testing of cryptographic algorithms
+- Memory safety validation with Miri
+
+**Integration Tests**
+- End-to-end satellite-ground communication scenarios
+- Multi-band frequency switching and failover
+- Real-time message priority scheduling validation
+- Error correction performance under various noise conditions
+
+**Performance Tests**
+- Latency benchmarks: <1ms for critical messages, <10ms for high priority
+- Throughput validation: 10 Gbps on Ka-Band, 1 Gbps on K-Band
+- Memory usage profiling for embedded constraints (<64KB RAM)
+- Power consumption analysis for space deployment
+
+**Security Tests**
+- Penetration testing against quantum and classical attacks
+- Anti-jamming resilience under adversarial conditions
+- Cryptographic key rotation and perfect forward secrecy
+- Side-channel attack resistance validation
+
+**Fault Tolerance Tests**
+- Byzantine fault tolerance with 33% malicious nodes
+- Radiation-induced bit-flip error simulation
+- Hardware failure cascade scenario testing
+- Graceful degradation under partial system failures
+
+**Embedded Hardware Tests**
+- Hardware-in-the-loop (HIL) testing with actual transceivers
+- Real-time constraint validation (hard deadlines)
+- Interrupt latency and deterministic response testing
+- Power management and brownout recovery scenarios
 
 ## 📊 Monitoring and Metrics
 
@@ -610,44 +1005,98 @@ The system provides comprehensive monitoring through:
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Please follow these steps:
+We welcome contributions from the space technology and Rust communities! Please follow these steps:
 
 1. **Fork the repository**
 2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Make your changes** following the coding standards
-4. **Add tests** for your changes
-5. **Run the test suite** (`pytest`)
-6. **Update documentation** as needed
-7. **Commit your changes** (`git commit -m 'Add amazing feature'`)
-8. **Push to the branch** (`git push origin feature/amazing-feature`)
-9. **Open a Pull Request**
+3. **Make your changes** following the Rust coding standards
+4. **Add tests** for your changes with `cargo test`
+5. **Run the full test suite** (`cargo test --workspace`)
+6. **Ensure code quality** (`cargo clippy` and `cargo fmt`)
+7. **Update documentation** as needed
+8. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+9. **Push to the branch** (`git push origin feature/amazing-feature`)
+10. **Open a Pull Request**
 
 ### Development Guidelines
 
-- Follow PEP 8 style guidelines for Python code
-- Maintain test coverage above 95%
-- Use type hints for all function signatures
-- Include docstrings for all public functions and classes
-- Follow NASA coding standards for space applications
+**Rust Code Standards**
+- Follow official Rust style guidelines (enforced by `rustfmt`)
+- Maintain test coverage above 95% across all modules
+- Use `#![deny(unsafe_code)]` except where hardware access requires it
+- Include comprehensive documentation comments for all public APIs
+- Follow NASA-STD-8719.13C software safety standards for space applications
 
-## 📋 Requirements
+**Embedded Development Standards**
+- All satellite code must be `no_std` compatible
+- Memory allocations must be bounded and predictable
+- Real-time constraints must be formally verified
+- Hardware abstraction layers must support multiple target platforms
 
-### System Requirements
+**Security Requirements**
+- All cryptographic implementations must be formally audited
+- Side-channel attack resistance must be validated
+- Quantum-resistant algorithms preferred for new features
+- Security-critical code requires peer review from 2+ reviewers
 
-- **Operating System**: Linux (Ubuntu 20.04+), macOS 10.15+, Windows 10+
-- **Python**: 3.10 or higher
-- **Memory**: Minimum 8GB RAM (16GB recommended)
-- **Storage**: 10GB free space for data and logs
-- **Network**: Broadband internet for external data sources
+## 📋 System Requirements
 
-### Software Dependencies
+### Development Environment
 
-- NumPy, SciPy (numerical computing)
-- Matplotlib, Plotly (visualization)
-- asyncio (asynchronous programming)
-- cryptography (security features)
-- pytest (testing framework)
-- Docker (containerization)
+**Required Software**
+- **Rust Toolchain**: 1.70+ with Embassy async support
+- **Operating System**: Linux (Ubuntu 20.04+), macOS 12+, Windows 11+
+- **Memory**: Minimum 16GB RAM (32GB recommended for full workspace builds)
+- **Storage**: 20GB free space for toolchains, targets, and build artifacts
+- **Network**: Stable internet for crate downloads and CI/CD integration
+
+**Hardware Development (Optional)**
+- **ARM Development Board**: STM32H7 or similar for satellite simulation
+- **RF Test Equipment**: Vector network analyzer for antenna characterization
+- **Oscilloscope**: High-bandwidth scope for signal integrity analysis
+- **Logic Analyzer**: For debugging embedded communication protocols
+
+### Runtime Requirements
+
+**Ground Station Deployment**
+- **CPU**: Multi-core x86-64 processor with AVX2 support
+- **Memory**: 8GB RAM minimum, 16GB for high-throughput operations
+- **Network**: Gigabit Ethernet for telemetry data handling
+- **Storage**: SSD recommended for low-latency message queuing
+
+**Satellite Embedded System**
+- **Microcontroller**: ARM Cortex-M7 with FPU (480MHz+)
+- **Memory**: 2MB Flash, 1MB RAM minimum for full feature set
+- **Power**: <5W average consumption for battery operation
+- **Temperature**: -40°C to +85°C operational range
+- **Radiation**: Total dose hardening >100 krad for space deployment
+
+### Software Dependencies (Managed by Cargo)
+
+**Core Runtime Dependencies**
+- `embassy-executor`: Async runtime for embedded systems
+- `embassy-time`: Deterministic timing and scheduling
+- `embassy-net`: Networking stack for ground station communication
+- `tokio`: Async runtime for ground station applications
+- `serde`: Serialization for CCSDS protocol implementation
+
+**Cryptographic Dependencies**
+- `ring`: High-performance cryptographic primitives
+- `rustls`: TLS implementation for secure communications
+- `x25519-dalek`: Elliptic curve Diffie-Hellman key exchange
+- `aes-gcm`: Authenticated encryption for data protection
+
+**Embedded Hardware Dependencies**
+- `embedded-hal`: Hardware abstraction layer traits
+- `cortex-m`: ARM Cortex-M processor support
+- `stm32h7xx-hal`: STM32H7 hardware abstraction (example target)
+- `nb`: Non-blocking I/O traits for real-time systems
+
+**Development and Testing**
+- `criterion`: Performance benchmarking framework
+- `proptest`: Property-based testing for algorithmic validation
+- `tarpaulin`: Code coverage analysis for Rust
+- `cargo-embed`: Embedded debugging and flashing tool
 
 ## 📄 License
 

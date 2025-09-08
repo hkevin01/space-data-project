@@ -42,6 +42,7 @@ space-data-project/
 ## 🛠️ Build and Run
 
 ### Prerequisites
+
 ```bash
 # Install Rust toolchain
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -51,6 +52,7 @@ rustup target add thumbv7em-none-eabihf
 ```
 
 ### Build Commands
+
 ```bash
 # Navigate to Rust workspace
 cd rust-workspace
@@ -72,6 +74,7 @@ cargo doc --workspace --open
 ```
 
 ### Docker Deployment
+
 ```bash
 # Build and run with Docker
 docker-compose up --build
@@ -84,18 +87,21 @@ docker-compose up --build
 ## 🎯 Key Features
 
 ### ✅ Rust Implementation Benefits
+
 - **Memory Safety**: No buffer overflows or use-after-free errors
 - **Performance**: Zero-cost abstractions with optimal runtime performance
 - **Concurrency**: Safe async programming with Embassy runtime
 - **Reliability**: Compile-time error prevention for space-critical systems
 
 ### ✅ NASA/DoD Compliance
+
 - **CCSDS Protocols**: Complete space packet implementation
 - **Real-Time Performance**: Deterministic task scheduling
 - **Fault Tolerance**: Comprehensive error handling and recovery
 - **Security**: Memory-safe design prevents common vulnerabilities
 
 ### ✅ Embedded Ready
+
 - **No-std Compatible**: Runs on embedded ARM Cortex-M processors
 - **Small Footprint**: <64KB RAM, <256KB Flash for satellite
 - **Deterministic**: Real-time guarantees for critical operations
@@ -114,12 +120,14 @@ docker-compose up --build
 ## 🔧 Development
 
 ### Code Quality
+
 - All code follows Rust best practices
 - Comprehensive error handling
 - Full documentation coverage
 - Extensive test suite
 
 ### Standards Compliance
+
 - NASA-STD-8719.13C software safety
 - CCSDS space communication protocols
 - DoD software engineering standards
@@ -128,18 +136,21 @@ docker-compose up --build
 ## 🚀 Deployment
 
 ### Satellite System
+
 ```bash
 cd rust-workspace/satellite
 cargo embed --target thumbv7em-none-eabihf
 ```
 
 ### Ground Station
+
 ```bash
 cd rust-workspace/ground
 cargo run --bin space-comms-ground
 ```
 
 ### Mission Control
+
 ```bash
 cd rust-workspace/ground
 cargo run --bin mission-control
