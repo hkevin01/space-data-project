@@ -24,6 +24,7 @@ extern crate std;
 extern crate core as std;
 
 pub mod ccsds;
+pub mod commands;
 pub mod error;
 pub mod messaging;
 pub mod security;
@@ -32,6 +33,7 @@ pub mod time;
 pub mod types;
 
 // Re-export commonly used types
+pub use commands::{SpaceCommand, CommandBuilder};
 pub use error::{Result, SpaceCommError};
 pub use messaging::{Message, MessagePriority, PriorityQueue};
 pub use telemetry::{TelemetryData, TelemetryPacket};

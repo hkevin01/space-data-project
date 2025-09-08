@@ -28,9 +28,17 @@ impl PacketId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MessageId(pub u64);
 
+static MESSAGE_ID_COUNTER: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(1);
+
 impl MessageId {
-    /// Create a new message ID
-    pub const fn new(id: u64) -> Self {
+    /// Generate a new unique message ID
+    pub fn new() -> Self {
+        let id = MESSAGE_ID_COUNTER.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+        Self(id)
+    }
+
+    /// Create a message ID from a specific value
+    pub const fn from_value(id: u64) -> Self {
         Self(id)
     }
 

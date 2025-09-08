@@ -17,6 +17,11 @@ heapless = { workspace = true }
 sha2 = { workspace = true }
 hmac = { workspace = true }
 
+[dev-dependencies]
+tokio = { workspace = true }
+criterion = { workspace = true }
+proptest = { workspace = true }
+
 [features]
 default = ["std"]
 std = []
