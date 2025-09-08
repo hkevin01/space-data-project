@@ -9,7 +9,7 @@ A high-performance, real-time message priority system built in Rust for space mi
 
 ## ✨ Key Features
 
-- **24 Mission-Critical Commands** across 5 priority levels
+- **25 Mission-Critical Commands** across 5 priority levels
 - **Real-Time Constraints** (<1ms for Emergency commands)
 - **Comprehensive Stress Testing** (up to 500 msg/sec)
 - **Embassy Async Runtime** for embedded systems
@@ -23,7 +23,7 @@ A high-performance, real-time message priority system built in Rust for space mi
 | Critical | 6 | <10ms | CollisionAvoidance, ResetSystem |
 | High | 5 | <100ms | UpdateOrbit, Deploy |
 | Medium | 5 | <1000ms | RequestTelemetry, CalibrateInstrument |
-| Low | 3 | <10000ms | SendStatus, LogEvent |
+| Low | 4 | <10000ms | SendStatus, LogEvent |
 
 ## 🏗️ Architecture
 
@@ -38,23 +38,27 @@ rust-workspace/
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup target add thumbv7em-none-eabihf
 ```
 
 ### Build & Test
+
 ```bash
 cd rust-workspace
 ./build_and_test.sh
 ```
 
 ### Run Demonstrations
+
 ```bash
 cargo run --example priority_demo
 ```
 
 ### Stress Testing
+
 ```bash
 cargo test --test priority_stress_tests -- --nocapture
 ```
@@ -69,16 +73,19 @@ cargo test --test priority_stress_tests -- --nocapture
 ## 🧪 Testing Framework
 
 ### High Throughput Testing
+
 - Tests up to 500 msg/sec burst loads
 - Validates queue capacity and processing rates
 - Measures latency distribution
 
 ### Priority Ordering Verification
+
 - Ensures Emergency commands always processed first
 - Validates FIFO ordering within priority levels
 - Tests complex mixed-priority scenarios
 
 ### Mission Scenarios
+
 - Collision avoidance sequence
 - Power emergency protocols
 - Communication failure recovery
@@ -92,48 +99,55 @@ cargo test --test priority_stress_tests -- --nocapture
 - **Target**: ARM Cortex-M (thumbv7em-none-eabihf)
 - **Architecture**: Multi-module workspace
 
-## 📋 Command Catalog
+## 📋 Complete Command Catalog (25 Commands)
 
 ### Emergency Commands (5)
-- EmergencyAbort - Immediate mission termination
-- EmergencyHalt - Hard stop all operations
-- ActivateSafeMode - Minimal power configuration
-- EmergencyPowerDown - Shutdown non-critical systems
-- EmergencyAttitudeRecovery - Spin stabilization
+
+1. **EmergencyAbort** - Immediate mission termination
+2. **EmergencyHalt** - Hard stop all operations
+3. **ActivateSafeMode** - Minimal power configuration
+4. **EmergencyPowerDown** - Shutdown non-critical systems
+5. **EmergencyAttitudeRecovery** - Spin stabilization
 
 ### Critical Commands (6)
-- AbortMission - Terminate mission sequence
-- HaltSubsystem - Stop specific subsystem
-- CollisionAvoidance - Execute avoidance maneuver
-- AttitudeControl - Immediate attitude adjustment
-- SwitchCommBackup - Failover to backup
-- ResetSystem - Component reset and recovery
+
+6. **AbortMission** - Terminate mission sequence
+7. **HaltSubsystem** - Stop specific subsystem
+8. **CollisionAvoidance** - Execute avoidance maneuver
+9. **AttitudeControl** - Immediate attitude adjustment
+10. **SwitchCommBackup** - Failover to backup
+11. **ResetSystem** - Component reset and recovery
 
 ### High Priority Commands (5)
-- UpdateOrbit - Modify orbital parameters
-- ReconfigureComm - Change communication settings
-- Deploy - Deploy solar panels or antenna
-- StartDataCollection - Begin science operations
-- ConfigurePower - Power management configuration
+
+12. **UpdateOrbit** - Modify orbital parameters
+13. **ReconfigureComm** - Change communication settings
+14. **Deploy** - Deploy solar panels or antenna
+15. **StartDataCollection** - Begin science operations
+16. **ConfigurePower** - Power management configuration
 
 ### Medium Priority Commands (5)
-- RequestTelemetry - Data collection request
-- UpdateConfig - Software configuration update
-- CalibrateInstrument - Sensor calibration
-- ScheduleOperation - Future operation scheduling
-- StoreData - Data storage operation
 
-### Low Priority Commands (3)
-- SendStatus - Status report transmission
-- UpdateTime - Time synchronization
-- PerformMaintenance - Routine maintenance
-- LogEvent - System event logging
+17. **RequestTelemetry** - Data collection request
+18. **UpdateConfig** - Software configuration update
+19. **CalibrateInstrument** - Sensor calibration
+20. **ScheduleOperation** - Future operation scheduling
+21. **StoreData** - Data storage operation
+
+### Low Priority Commands (4)
+
+22. **SendStatus** - Status report transmission
+23. **UpdateTime** - Time synchronization
+24. **PerformMaintenance** - Routine maintenance
+25. **LogEvent** - System event logging
+
+**Total: 25 Mission Commands**
 
 ## 🔬 Validation Results
 
 When properly tested, the system demonstrates:
 
-- ✅ All 24 commands correctly prioritized
+- ✅ All 25 commands correctly prioritized
 - ✅ Zero priority violations under stress
 - ✅ Real-time constraints maintained
 - ✅ High throughput capability (500+ msg/sec)
@@ -146,6 +160,7 @@ For detailed testing instructions, see: [PRIORITY_SYSTEM_TESTING_GUIDE.md](./PRI
 ## 🌌 Space-Ready
 
 This system is designed for real space missions with:
+
 - Hardware-in-the-loop testing capabilities
 - Embedded satellite deployment
 - Ground station integration
@@ -160,24 +175,28 @@ This system is designed for real space missions with:
 ### Technical Justifications
 
 **Memory Safety & Reliability**
+
 - **Zero-cost abstractions**: Rust provides high-level programming constructs without runtime overhead, critical for resource-constrained satellite systems
 - **Compile-time error prevention**: Eliminates buffer overflows, use-after-free, and null pointer dereferences that could cause mission-critical failures
 - **Deterministic behavior**: No garbage collector ensures predictable timing for real-time space operations
 - **Thread safety**: Prevents data races and concurrent access issues in multi-threaded satellite systems
 
 **Performance Requirements**
+
 - **Embedded compatibility**: No-std support enables deployment on ARM Cortex-M microcontrollers with <64KB RAM
 - **Real-time guarantees**: Embassy async runtime provides deterministic task scheduling for time-critical operations
 - **Power efficiency**: Optimized binary size and CPU usage critical for solar-powered satellites
 - **Interrupt handling**: Direct hardware access and precise timing control for RF transceivers
 
 **Space Industry Standards**
+
 - **NASA-STD-8719.13C compliance**: Memory-safe languages reduce software safety risks in space systems
 - **DoD requirements**: Rust's security properties align with defense cybersecurity standards
 - **MISRA-like guidelines**: Rust's ownership model provides automatic compliance with safety-critical coding standards
 - **Formal verification**: Rust's type system enables mathematical proof of correctness for critical algorithms
 
 **Ecosystem Advantages**
+
 - **Embassy framework**: Purpose-built for embedded async programming with hardware abstraction layers
 - **CCSDS protocols**: Native Rust implementations of space communication standards
 - **Cross-compilation**: Single codebase targets both x86-64 ground stations and ARM embedded satellites
@@ -311,12 +330,14 @@ gantt
 ### Error Correction Strategy: LDPC + Reed-Solomon Hybrid
 
 **Why LDPC (Low-Density Parity-Check) Codes?**
+
 - **Superior performance**: LDPC codes approach Shannon limit with 99.9% error correction efficiency
 - **Configurable complexity**: Adjustable code rates (0.25 to 0.875) optimize for channel conditions
 - **Hardware efficiency**: Parallel decoding algorithms reduce power consumption on embedded systems
 - **Space heritage**: Used in DVB-S2 and NASA deep space missions (Mars rovers, Voyager)
 
 **Why Reed-Solomon as Backup?**
+
 - **Burst error resilience**: Corrects symbol-level errors caused by solar radiation and interference
 - **Algebraic decoding**: Deterministic correction guarantees for space-critical applications
 - **Mature implementation**: Battle-tested in Voyager, Cassini, and GPS satellite systems
@@ -325,6 +346,7 @@ gantt
 ### Message Priority System Design
 
 **Three-Tier Priority Architecture**
+
 ```rust
 enum Priority {
     Critical,  // Emergency commands, attitude control (<1ms latency)
@@ -334,6 +356,7 @@ enum Priority {
 ```
 
 **Priority Scheduling Algorithm**
+
 - **Preemptive scheduling**: Critical messages interrupt lower priority transmissions
 - **Bandwidth allocation**: 50% reserved for critical, 30% high, 20% normal priority
 - **Queue management**: Circular buffers with overflow protection and message aging
@@ -342,12 +365,14 @@ enum Priority {
 ### Security Architecture
 
 **Post-Quantum Cryptography Selection**
+
 - **CRYSTALS-Kyber**: Lattice-based key encapsulation for quantum resistance
 - **CRYSTALS-Dilithium**: Digital signatures resistant to Shor's algorithm
 - **AES-256-GCM**: Symmetric encryption with authenticated encryption
 - **X25519**: Elliptic curve Diffie-Hellman for current threat model
 
 **Anti-Jamming Strategies**
+
 - **Frequency hopping**: Pseudo-random sequence generation at 1000 hops/second
 - **Spread spectrum**: Direct sequence spreading for signal obfuscation
 - **Adaptive beamforming**: Null steering toward interference sources
@@ -356,12 +381,14 @@ enum Priority {
 ### Fault Tolerance Philosophy
 
 **Byzantine Fault Tolerance**
+
 - **Triple redundancy**: 3 independent satellite systems for critical operations
 - **Consensus protocols**: PBFT (Practical Byzantine Fault Tolerance) for command validation
 - **Heartbeat monitoring**: 100ms health checks with exponential backoff
 - **Graceful degradation**: Automatic failover to backup systems within 500ms
 
 **Hardware Fault Resilience**
+
 - **ECC memory**: Single-bit error correction, double-bit error detection
 - **Watchdog timers**: Hardware-level system reset for software failures
 - **Power management**: Brownout detection and emergency power conservation
@@ -700,9 +727,9 @@ graph TB
 
 3. **Access monitoring dashboards**
 
-   - Ground Station Control: http://localhost:8080
-   - Telemetry Dashboard: http://localhost:8081
-   - Mission Control: http://localhost:8082
+   - Ground Station Control: <http://localhost:8080>
+   - Telemetry Dashboard: <http://localhost:8081>
+   - Mission Control: <http://localhost:8082>
 
 ### Local Development Setup
 
@@ -754,13 +781,11 @@ graph TB
 
 3. **Install development dependencies**
 
-
    ```bash
    pip install -r requirements-dev.txt
    ```
 
 4. **Run tests**
-
 
    ```bash
    pytest tests/ --cov=src --cov-report=html
@@ -1065,36 +1090,42 @@ cargo test --test security_tests --features "pentest" -- --ignored
 ### Test Categories & Coverage
 
 **Unit Tests (95%+ Coverage Required)**
+
 - Individual component testing with property-based testing
 - Mock hardware interfaces for embedded components
 - Isolated testing of cryptographic algorithms
 - Memory safety validation with Miri
 
 **Integration Tests**
+
 - End-to-end satellite-ground communication scenarios
 - Multi-band frequency switching and failover
 - Real-time message priority scheduling validation
 - Error correction performance under various noise conditions
 
 **Performance Tests**
+
 - Latency benchmarks: <1ms for critical messages, <10ms for high priority
 - Throughput validation: 10 Gbps on Ka-Band, 1 Gbps on K-Band
 - Memory usage profiling for embedded constraints (<64KB RAM)
 - Power consumption analysis for space deployment
 
 **Security Tests**
+
 - Penetration testing against quantum and classical attacks
 - Anti-jamming resilience under adversarial conditions
 - Cryptographic key rotation and perfect forward secrecy
 - Side-channel attack resistance validation
 
 **Fault Tolerance Tests**
+
 - Byzantine fault tolerance with 33% malicious nodes
 - Radiation-induced bit-flip error simulation
 - Hardware failure cascade scenario testing
 - Graceful degradation under partial system failures
 
 **Embedded Hardware Tests**
+
 - Hardware-in-the-loop (HIL) testing with actual transceivers
 - Real-time constraint validation (hard deadlines)
 - Interrupt latency and deterministic response testing
@@ -1152,6 +1183,7 @@ We welcome contributions from the space technology and Rust communities! Please 
 ### Development Guidelines
 
 **Rust Code Standards**
+
 - Follow official Rust style guidelines (enforced by `rustfmt`)
 - Maintain test coverage above 95% across all modules
 - Use `#![deny(unsafe_code)]` except where hardware access requires it
@@ -1159,12 +1191,14 @@ We welcome contributions from the space technology and Rust communities! Please 
 - Follow NASA-STD-8719.13C software safety standards for space applications
 
 **Embedded Development Standards**
+
 - All satellite code must be `no_std` compatible
 - Memory allocations must be bounded and predictable
 - Real-time constraints must be formally verified
 - Hardware abstraction layers must support multiple target platforms
 
 **Security Requirements**
+
 - All cryptographic implementations must be formally audited
 - Side-channel attack resistance must be validated
 - Quantum-resistant algorithms preferred for new features
@@ -1175,6 +1209,7 @@ We welcome contributions from the space technology and Rust communities! Please 
 ### Development Environment
 
 **Required Software**
+
 - **Rust Toolchain**: 1.70+ with Embassy async support
 - **Operating System**: Linux (Ubuntu 20.04+), macOS 12+, Windows 11+
 - **Memory**: Minimum 16GB RAM (32GB recommended for full workspace builds)
@@ -1182,6 +1217,7 @@ We welcome contributions from the space technology and Rust communities! Please 
 - **Network**: Stable internet for crate downloads and CI/CD integration
 
 **Hardware Development (Optional)**
+
 - **ARM Development Board**: STM32H7 or similar for satellite simulation
 - **RF Test Equipment**: Vector network analyzer for antenna characterization
 - **Oscilloscope**: High-bandwidth scope for signal integrity analysis
@@ -1190,12 +1226,14 @@ We welcome contributions from the space technology and Rust communities! Please 
 ### Runtime Requirements
 
 **Ground Station Deployment**
+
 - **CPU**: Multi-core x86-64 processor with AVX2 support
 - **Memory**: 8GB RAM minimum, 16GB for high-throughput operations
 - **Network**: Gigabit Ethernet for telemetry data handling
 - **Storage**: SSD recommended for low-latency message queuing
 
 **Satellite Embedded System**
+
 - **Microcontroller**: ARM Cortex-M7 with FPU (480MHz+)
 - **Memory**: 2MB Flash, 1MB RAM minimum for full feature set
 - **Power**: <5W average consumption for battery operation
@@ -1205,6 +1243,7 @@ We welcome contributions from the space technology and Rust communities! Please 
 ### Software Dependencies (Managed by Cargo)
 
 **Core Runtime Dependencies**
+
 - `embassy-executor`: Async runtime for embedded systems
 - `embassy-time`: Deterministic timing and scheduling
 - `embassy-net`: Networking stack for ground station communication
@@ -1212,18 +1251,21 @@ We welcome contributions from the space technology and Rust communities! Please 
 - `serde`: Serialization for CCSDS protocol implementation
 
 **Cryptographic Dependencies**
+
 - `ring`: High-performance cryptographic primitives
 - `rustls`: TLS implementation for secure communications
 - `x25519-dalek`: Elliptic curve Diffie-Hellman key exchange
 - `aes-gcm`: Authenticated encryption for data protection
 
 **Embedded Hardware Dependencies**
+
 - `embedded-hal`: Hardware abstraction layer traits
 - `cortex-m`: ARM Cortex-M processor support
 - `stm32h7xx-hal`: STM32H7 hardware abstraction (example target)
 - `nb`: Non-blocking I/O traits for real-time systems
 
 **Development and Testing**
+
 - `criterion`: Performance benchmarking framework
 - `proptest`: Property-based testing for algorithmic validation
 - `tarpaulin`: Code coverage analysis for Rust
