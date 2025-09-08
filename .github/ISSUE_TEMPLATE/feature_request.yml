@@ -1,0 +1,92 @@
+name: Feature Request
+description: Suggest an idea for this project
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! Please provide as much detail as possible about your idea.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of what the problem is
+      placeholder: I'm always frustrated when...
+    validations:
+      required: false
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: A clear and concise description of what you want to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: A clear and concise description of any alternative solutions or features you've considered
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which component would this affect?
+      multiple: true
+      options:
+        - Messaging System
+        - Fault Tolerance
+        - Security
+        - Communication Bands
+        - Visualization
+        - Monitoring
+        - Documentation
+        - Performance
+        - Testing
+        - DevOps/CI
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      options:
+        - Critical (Essential for project success)
+        - High (Important for major functionality)
+        - Medium (Nice to have, improves usability)
+        - Low (Minor enhancement)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context, screenshots, or examples about the feature request here
+
+  - type: checkboxes
+    id: nasa-compliance
+    attributes:
+      label: NASA Standards Compliance
+      description: Does this feature need to comply with NASA standards?
+      options:
+        - label: This feature must comply with NASA CCSDS standards
+        - label: This feature must comply with NASA requirements documentation
+        - label: This feature is related to space communication protocols
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this feature request, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

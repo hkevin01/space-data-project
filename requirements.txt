@@ -1,0 +1,94 @@
+# Core dependencies for Space Data Communication Analysis Project
+# Python 3.10+ required
+
+# Scientific Computing
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+
+# Visualization
+matplotlib>=3.6.0
+plotly>=5.14.0
+dash>=2.10.0
+dash-bootstrap-components>=1.4.0
+
+# Asynchronous Programming
+asyncio-mqtt>=0.13.0
+aiofiles>=23.1.0
+
+# Communication and Networking
+pika>=1.3.0  # RabbitMQ client for message queuing
+kafka-python>=2.0.2  # Apache Kafka client
+nats-py>=2.3.0  # NATS messaging system
+websockets>=11.0.0
+
+# Cryptography and Security
+cryptography>=41.0.0
+pycryptodome>=3.18.0
+pynacl>=1.5.0  # Modern cryptography library
+pyopenssl>=23.2.0
+
+# Error Correction
+pyldpc>=0.7.9  # LDPC error correction
+reedsolo>=1.5.4  # Reed-Solomon error correction
+
+# Monitoring and Metrics
+prometheus-client>=0.17.0
+grafana-api>=1.0.3
+
+# Configuration Management
+pyyaml>=6.0
+python-dotenv>=1.0.0
+click>=8.1.0  # Command line interface
+
+# Database and Storage
+sqlalchemy>=2.0.0
+redis>=4.5.0
+hdf5storage>=0.1.18  # NASA standard data formats
+
+# Testing and Development (will be moved to requirements-dev.txt)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+pytest-benchmark>=4.0.0
+
+# Logging and Debugging
+structlog>=23.1.0
+sentry-sdk>=1.28.0
+
+# Data Validation
+pydantic>=2.0.0
+marshmallow>=3.19.0
+
+# Performance
+numba>=0.57.0  # JIT compilation for performance-critical code
+cython>=0.29.0  # C extensions for speed
+
+# Space-specific libraries
+astropy>=5.3.0  # Astronomy and astrophysics library
+skyfield>=1.46  # Satellite position calculation
+pyorbital>=1.7.0  # Orbital mechanics
+
+# Time handling for space applications
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Signal processing
+scikit-signal>=0.1.0
+pywavelets>=1.4.0
+
+# Machine Learning (for adaptive bandwidth management)
+scikit-learn>=1.3.0
+tensorflow>=2.13.0  # For AI-based features
+
+# HTTP clients and APIs
+httpx>=0.24.0
+requests>=2.31.0
+
+# Container and deployment
+docker>=6.1.0
+kubernetes>=27.2.0
+
+# Development utilities
+rich>=13.4.0  # Rich terminal output
+typer>=0.9.0  # CLI framework
