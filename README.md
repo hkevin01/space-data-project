@@ -1,30 +1,39 @@
 # Space Data Communication Analysis Project
 
-[![Build Status](https://github.com/username/space-data-project/workflows/CI/badge.svg)](https://github.com/username/space-data-project/actions)
-[![Coverage Status](https://coveralls.io/repos/github/username/space-data-project/badge.svg?branch=main)](https://coveralls.io/github/username/space-data-project?branch=main)
-[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
+[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
+[![Embassy](https://img.shields.io/badge/embassy-async-blue.svg)](https://embassy.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![NASA Standards](https://img.shields.io/badge/NASA-STD--8719.13C-green.svg)](https://standards.nasa.gov)
 
-A comprehensive **Fault-Tolerant Priority-Based Space Communication System** designed to NASA standards for satellite communication analysis across multiple frequency bands (K-band, X-band, S-band) with emphasis on real-time priority messaging, advanced fault tolerance, and cutting-edge security features.
+A comprehensive **Rust-based embedded satellite communication system** implementing NASA and DoD coding standards for real-time space communications. This project features a complete satellite-ground architecture with multi-band RF communication, CCSDS protocol compliance, and deterministic real-time performance using Embassy async runtime.
 
-## 🚀 Project Overview
+## 🚀 Overview
 
-This project implements a sophisticated space data communication analysis system that adheres to NASA's CCSDS (Consultative Committee for Space Data Systems) standards while incorporating modern advances in:
+A comprehensive **Rust-based embedded satellite communication system** implementing NASA and DoD coding standards for real-time space communications. This project features a complete satellite-ground architecture with multi-band RF communication, CCSDS protocol compliance, and deterministic real-time performance using Embassy async runtime.
 
-- **Priority-Based Messaging**: Intelligent message scheduling with high/medium/low priority queues
-- **Fault Tolerance**: Advanced LDPC error correction and redundancy mechanisms
-- **Security**: Post-quantum cryptography and quantum key distribution
-- **Real-Time Performance**: Support for high-frequency communication (1000Hz for critical telemetry)
-- **NASA Compliance**: Full adherence to CCSDS protocols and NASA requirements documentation
+## 🏗️ Architecture
 
-### Key Features
+### System Components
 
-- 🔄 **Adaptive Message Scheduling**: Process high-priority messages at 1000Hz with guaranteed latency <1ms
-- 🛡️ **Advanced Error Correction**: LDPC-based error correction supporting recovery from 50%+ packet loss
-- 🔐 **Quantum-Safe Security**: Post-quantum cryptography and simulated quantum key distribution
-- 📊 **Real-Time Monitoring**: Grafana-based dashboard with Prometheus metrics collection
-- 🌌 **Multi-Band Support**: K-band (18-27 GHz), X-band (8-12 GHz), and S-band (2-4 GHz) analysis
-- ⚡ **High Performance**: <50ms latency for real-time analysis, 99.99% uptime target
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    SPACE COMMUNICATION SYSTEM              │
+├─────────────────────────────────────────────────────────────┤
+│  SATELLITE SYSTEM          │         GROUND SYSTEM          │
+│  ┌─────────────────────┐   │   ┌─────────────────────────┐   │
+│  │   Embassy Runtime   │   │   │   Mission Control      │   │
+│  │  ┌───────────────┐  │   │   │  ┌───────────────────┐  │   │
+│  │  │ Task Scheduler│  │   │   │  │ Command Interface │  │   │
+│  │  └───────────────┘  │   │   │  └───────────────────┘  │   │
+│  │  ┌───────────────┐  │   │   │  ┌───────────────────┐  │   │
+│  │  │ Message Queue │  │◄──┼───┼──┤ Ground Station    │  │   │
+│  │  └───────────────┘  │   │   │  └───────────────────┘  │   │
+│  │  ┌───────────────┐  │   │   │  ┌───────────────────┐  │   │
+│  │  │ Hardware HAL  │  │   │   │  │ Telemetry Monitor │  │   │
+│  │  └───────────────┘  │   │   │  └───────────────────┘  │   │
+│  └─────────────────────┘   │   └─────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## 📡 Communication Bands Overview
 
@@ -45,18 +54,18 @@ flowchart TD
     A[Message Priority Assessment] --> B{High Priority?}
     B -->|Yes| C{Data Rate > 1 Gbps?}
     B -->|No| D{Medium Priority?}
-    
+
     C -->|Yes| E[Ka-Band<br/>26.5-40 GHz<br/>Ultra-high bandwidth]
     C -->|No| F[K-Band<br/>20-30 GHz<br/>High bandwidth]
-    
+
     D -->|Yes| G{Weather Conditions?}
     D -->|No| H[S-Band<br/>2-4 GHz<br/>Reliable TT&C]
-    
+
     G -->|Clear| I[X-Band<br/>8-12 GHz<br/>Medium bandwidth]
     G -->|Adverse| J[S-Band<br/>2-4 GHz<br/>Weather resistant]
-    
+
     K[Emergency/Backup] --> L[UHF-Band<br/>300 MHz-3 GHz<br/>High reliability]
-    
+
     style E fill:#ff6b6b
     style F fill:#4ecdc4
     style I fill:#45b7d1
@@ -72,21 +81,21 @@ gantt
     title Communication Band Usage by Mission Phase
     dateFormat X
     axisFormat %s
-    
+
     section Launch Phase
     S-Band TT&C          :active, s1, 0, 300
     UHF Backup          :uhf1, 0, 300
-    
+
     section Orbit Operations
     K-Band Science Data  :k1, 300, 1800
     X-Band Telemetry    :x1, 300, 1800
     S-Band Commands     :s2, 300, 1800
-    
+
     section Deep Space
     Ka-Band High-Rate   :ka1, 1800, 3600
     X-Band Medium-Rate  :x2, 1800, 3600
     S-Band Emergency    :s3, 1800, 3600
-    
+
     section Emergency Mode
     UHF Low-Rate       :uhf2, 2400, 3600
     S-Band Backup      :s4, 2400, 3600
@@ -163,19 +172,19 @@ graph TB
         GS[Ground Control]
         GA[Ground Antenna]
     end
-    
+
     subgraph "Space Segment"
         SAT1[Primary Satellite]
         SAT2[Backup Satellite]
         RELAY[Relay Satellite]
     end
-    
+
     subgraph "Mission Control"
         MC[Mission Control Center]
         DB[(Telemetry Database)]
         MON[Monitoring System]
     end
-    
+
     subgraph "Communication Bands"
         SBAND[S-Band<br/>TT&C]
         XBAND[X-Band<br/>Data Relay]
@@ -183,25 +192,25 @@ graph TB
         KABAND[Ka-Band<br/>Ultra High Speed]
         UHF[UHF<br/>Emergency]
     end
-    
+
     GS --> SBAND
     GS --> XBAND
     GA --> KBAND
     GA --> KABAND
-    
+
     SBAND --> SAT1
     XBAND --> SAT1
     KBAND --> SAT1
     KABAND --> SAT1
     UHF --> SAT2
-    
+
     SAT1 --> RELAY
     SAT2 --> RELAY
     RELAY --> MC
-    
+
     MC --> DB
     MC --> MON
-    
+
     style SAT1 fill:#4ecdc4
     style SAT2 fill:#45b7d1
     style RELAY fill:#96ceb4
@@ -218,7 +227,7 @@ sequenceDiagram
     participant XB as X-Band
     participant SB as S-Band
     participant SAT as Satellite
-    
+
     Note over GC,SAT: High Priority Emergency Command
     GC->>PS: Emergency Command (Priority: HIGH)
     PS->>KB: Route to K-Band (1000Hz)
@@ -226,7 +235,7 @@ sequenceDiagram
     SAT-->>KB: ACK
     KB-->>PS: Success
     PS-->>GC: Command Delivered
-    
+
     Note over GC,SAT: Medium Priority Telemetry
     GC->>PS: Telemetry Request (Priority: MEDIUM)
     PS->>XB: Route to X-Band (500Hz)
@@ -234,7 +243,7 @@ sequenceDiagram
     SAT-->>XB: Telemetry Data
     XB-->>PS: Data Received
     PS-->>GC: Telemetry Delivered
-    
+
     Note over GC,SAT: Low Priority Status Update
     GC->>PS: Status Request (Priority: LOW)
     PS->>SB: Route to S-Band (100Hz)
@@ -253,35 +262,35 @@ graph LR
         ENC1 --> TRANS1[K-Band Transmitter]
         TRANS1 --> SAT1[Primary Satellite]
     end
-    
+
     subgraph "Backup Path"
         MSG2[Message Copy] --> ENC2[Reed-Solomon Encoder]
         ENC2 --> TRANS2[X-Band Transmitter]
         TRANS2 --> SAT2[Backup Satellite]
     end
-    
+
     subgraph "Emergency Path"
         MSG3[Critical Message] --> ENC3[Simple Encoder]
         ENC3 --> TRANS3[UHF Transmitter]
         TRANS3 --> SAT3[Emergency Satellite]
     end
-    
+
     subgraph "Error Detection"
         ED[Error Detector]
         FD[Failure Detector]
         SR[Signal Router]
     end
-    
+
     SAT1 --> ED
     SAT2 --> ED
     SAT3 --> ED
-    
+
     ED --> FD
     FD --> SR
-    
+
     SR -->|Switch on Failure| TRANS2
     SR -->|Critical Failure| TRANS3
-    
+
     style SAT1 fill:#4ecdc4
     style SAT2 fill:#45b7d1
     style SAT3 fill:#feca57
@@ -298,47 +307,47 @@ graph TB
         GPS[GPS Constellation]
         THREAT[Threat Detection]
     end
-    
+
     subgraph "Communication Bands"
         MILITARY_X[Military X-Band<br/>Secure Comm]
         MILITARY_S[Military S-Band<br/>TT&C]
         CIVIL_L[Civil L-Band<br/>GPS Signals]
         SECURE_KA[Secure Ka-Band<br/>High-Speed Intel]
     end
-    
+
     subgraph "Space Assets"
         DSP[Defense Support Program]
         SBIRS[Space-Based Infrared System]
         GPS_SAT[GPS Satellites]
         COMM_SAT[Military Comm Satellites]
     end
-    
+
     subgraph "Anti-Jamming"
         JAM_DETECT[Jamming Detection]
         FREQ_HOP[Frequency Hopping]
         BEAM_FORM[Adaptive Beamforming]
         BACKUP_ROUTE[Backup Routing]
     end
-    
+
     MISSILE --> MILITARY_X
     RADAR --> MILITARY_S
     GPS --> CIVIL_L
     THREAT --> SECURE_KA
-    
+
     MILITARY_X --> DSP
     MILITARY_S --> SBIRS
     CIVIL_L --> GPS_SAT
     SECURE_KA --> COMM_SAT
-    
+
     DSP --> JAM_DETECT
     SBIRS --> FREQ_HOP
     GPS_SAT --> BEAM_FORM
     COMM_SAT --> BACKUP_ROUTE
-    
+
     JAM_DETECT --> BACKUP_ROUTE
     FREQ_HOP --> BACKUP_ROUTE
     BEAM_FORM --> BACKUP_ROUTE
-    
+
     style MISSILE fill:#ff6b6b
     style THREAT fill:#ff6b6b
     style JAM_DETECT fill:#feca57
@@ -368,44 +377,58 @@ graph TB
 ### Quick Start with Docker
 
 1. **Clone the repository**
+
+
    ```bash
    git clone <repository-url>
    cd space-data-project
    ```
 
+
 2. **Build and run with Docker Compose**
+
    ```bash
    docker-compose up --build
    ```
-
-3. **Access the monitoring dashboard**
-   - Grafana: http://localhost:3000
-   - Prometheus: http://localhost:9090
+<http://localhost:3000>
+3. **Access the m<http://localhost:9090>
+   - Grafana: <http://localhost:3000>
+   - Prometheus: <http://localhost:9090>
 
 ### Local Development Setup
 
+
 1. **Clone and navigate to project**
+
    ```bash
    git clone <repository-url>
    cd space-data-project
+
    ```
 
 2. **Install Python dependencies**
+
    ```bash
+
    pip install -r requirements.txt
    ```
 
 3. **Install development dependencies**
+
+
    ```bash
    pip install -r requirements-dev.txt
    ```
 
 4. **Run tests**
+
+
    ```bash
    pytest tests/ --cov=src --cov-report=html
    ```
 
 5. **Start the application**
+
    ```bash
    python -m src.main
    ```
@@ -504,7 +527,7 @@ sequenceDiagram
     participant GPS as GPS Network
     participant COMM as Comm System
     participant RESPONSE as Response Team
-    
+
     Note over THREAT,RESPONSE: Missile Defense Scenario
     THREAT->>DEFENSE: Threat Detected (Ka-Band, <0.5ms)
     DEFENSE->>GPS: Request Precise Location
@@ -513,7 +536,7 @@ sequenceDiagram
     COMM->>RESPONSE: Emergency Notification
     RESPONSE->>DEFENSE: Countermeasure Authorization
     DEFENSE->>COMM: Execute Defense Protocol
-    
+
     Note over THREAT,RESPONSE: GPS Jamming Scenario
     THREAT->>GPS: Jamming Detected
     GPS->>COMM: Switch to Backup Systems (UHF)

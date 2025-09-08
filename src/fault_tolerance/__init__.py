@@ -16,7 +16,7 @@ from .ldpc_error_correction import (
 
 __all__ = [
     "LDPCEncoder",
-    "ErrorCorrectionMode", 
+    "ErrorCorrectionMode",
     "ChannelCondition",
     "CodeParameters",
     "DecodingResult",

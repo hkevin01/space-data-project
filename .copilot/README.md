@@ -35,9 +35,9 @@ This project focuses on:
 1. **Context-Aware Prompting**
    ```python
    # Good: Provides context about space communication requirements
-   # "Create a priority-based message scheduler for NASA CCSDS-compliant 
+   # "Create a priority-based message scheduler for NASA CCSDS-compliant
    # satellite communication with 1000Hz processing capability"
-   
+
    # Bad: Too generic
    # "Create a message queue"
    ```
@@ -56,30 +56,30 @@ This project focuses on:
 
 #### For Message Scheduling
 ```
-"Create a Python class for priority-based message scheduling in a space 
-communication system. It should support high (1000Hz), medium (500Hz), 
-and low (100Hz) priority messages according to NASA CCSDS standards. 
+"Create a Python class for priority-based message scheduling in a space
+communication system. It should support high (1000Hz), medium (500Hz),
+and low (100Hz) priority messages according to NASA CCSDS standards.
 Include proper error handling and type hints."
 ```
 
 #### For Error Correction
 ```
-"Implement LDPC (Low-Density Parity Check) error correction for satellite 
-communication data packets. The implementation should handle up to 50% 
+"Implement LDPC (Low-Density Parity Check) error correction for satellite
+communication data packets. The implementation should handle up to 50%
 packet loss and be compliant with NASA fault tolerance requirements."
 ```
 
 #### For Security Features
 ```
-"Create a post-quantum cryptography implementation for space communication 
-security. Include lattice-based encryption algorithms suitable for 
+"Create a post-quantum cryptography implementation for space communication
+security. Include lattice-based encryption algorithms suitable for
 long-term space missions and quantum-safe key exchange protocols."
 ```
 
 #### For Testing
 ```
-"Write comprehensive pytest test cases for [component] including unit tests, 
-integration tests, and performance benchmarks. Include NASA standards 
+"Write comprehensive pytest test cases for [component] including unit tests,
+integration tests, and performance benchmarks. Include NASA standards
 compliance verification and fault tolerance scenario testing."
 ```
 
@@ -113,7 +113,7 @@ When using Copilot for this project:
 - Consider bandwidth allocation and adaptive scheduling
 - Implement proper async/await patterns for high-frequency processing
 
-### For `/src/fault_tolerance/` Files  
+### For `/src/fault_tolerance/` Files
 - Emphasize error correction algorithms (LDPC, Reed-Solomon)
 - Include redundancy mechanisms and failover logic
 - Implement graceful degradation strategies

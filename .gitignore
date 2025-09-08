@@ -1,23 +1,77 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
 
-# C extensions
-*.so
+# Cargo files
+Cargo.lock
+!rust-workspace/Cargo.lock
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
+# Rust toolchain
+.rustc_info.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Data files
+data/
+*.sqlite
+*.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Documentation build
+/docs/book/
+/docs/target/
+
+# Embedded artifacts
+*.bin
+*.hex
+*.elf
+*.map
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Mission-specific data
+telemetry_logs/
+command_history/
+satellite_data/
+
+# Test artifacts
+coverage/
+test-results/
 var/
 wheels/
 pip-wheel-metadata/

@@ -1,0 +1,82 @@
+[workspace]
+members = ["satellite", "ground", "shared"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Space Data Project Team"]
+license = "MIT"
+repository = "https://github.com/hkevin01/space-data-project"
+
+[workspace.dependencies]
+# Shared dependencies across all workspace members
+tokio = { version = "1.36", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uuid = { version = "1.7", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Cryptography and security (NASA/DoD standards)
+aes-gcm = "0.10"
+sha2 = "0.10"
+hmac = "0.12"
+rand = "0.8"
+x509-parser = "0.15"
+
+# Networking
+tcp-stream = "0.21"
+tls-api = "0.9"
+rustls = "0.21"
+
+# Embedded and no-std compatible
+heapless = "0.7"
+nb = "1.1"
+embedded-hal = "0.2"
+cortex-m = "0.7"
+
+# Testing and benchmarking
+criterion = "0.5"
+proptest = "1.4"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"                 # NASA/DoD: Prevent unsafe code
+missing_docs = "warn"                  # NASA: Require documentation
+unused_variables = "deny"              # DoD: No unused variables
+dead_code = "warn"                     # Clean code standards
+missing_debug_implementations = "warn" # Debugging support
+rust_2018_idioms = "warn"              # Modern Rust practices
+
+[workspace.lints.clippy]
+all = "deny"         # Enable all standard lints
+pedantic = "warn"    # High-quality code practices
+restriction = "warn" # Additional restrictions
+nursery = "warn"     # Experimental lints
+cargo = "warn"       # Cargo-specific lints
+
+# NASA/DoD specific restrictions
+integer_arithmetic = "warn" # Prevent overflow issues
+float_arithmetic = "warn"   # Avoid floating point in critical sections
+unwrap_used = "deny"        # Explicit error handling required
+expect_used = "warn"        # Prefer proper error handling
+panic = "deny"              # No panics in production code
+todo = "warn"               # Track incomplete implementations
+unimplemented = "warn"      # Track unimplemented features
+
+[profile.release]
+lto = true        # Link-time optimization
+codegen-units = 1 # Single codegen unit for optimization
+panic = "abort"   # Abort on panic for embedded systems
+strip = true      # Strip debug symbols
+opt-level = "z"   # Optimize for size (important for embedded)
+
+[profile.dev]
+debug = true  # Include debug info in dev builds
+opt-level = 1 # Some optimization for dev performance
+
+[profile.test]
+opt-level = 1 # Optimize tests for speed
+debug = true  # Keep debug info for test debugging

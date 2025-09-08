@@ -17,7 +17,7 @@ from .priority_scheduler import (
 
 __all__ = [
     "MessageScheduler",
-    "Message", 
+    "Message",
     "MessagePriority",
     "MessageStatus",
     "CommunicationBand",

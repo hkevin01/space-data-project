@@ -1,0 +1,58 @@
+[package]
+name = "space-satellite"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Embedded satellite communication system"
+
+[dependencies]
+space-comms-shared = { path = "../shared", default-features = false, features = [
+  "no-std",
+] }
+
+# Embedded and no-std dependencies
+heapless = { workspace = true }
+nb = { workspace = true }
+embedded-hal = { workspace = true }
+cortex-m = { workspace = true }
+
+# RTOS for embedded systems
+embassy-executor = "0.5"
+embassy-time = "0.3"
+embassy-sync = "0.5"
+
+# Serialization (no-std compatible)
+serde = { workspace = true, default-features = false }
+serde_json = { workspace = true, default-features = false }
+
+# Error handling
+thiserror = { workspace = true, default-features = false }
+
+# Cryptography (no-std compatible)
+aes-gcm = { workspace = true, default-features = false }
+sha2 = { workspace = true, default-features = false }
+hmac = { workspace = true, default-features = false }
+
+# Random number generation for embedded
+rand_core = "0.6"
+rand_chacha = { version = "0.3", default-features = false }
+
+# Optional features for different target architectures
+cortex-m-rt = { version = "0.7", optional = true }
+panic-halt = { version = "0.2", optional = true }
+
+[features]
+default = ["embassy"]
+embassy = ["embassy-executor", "embassy-time", "embassy-sync"]
+cortex-m-rt-feature = ["cortex-m-rt"]
+panic-halt-feature = ["panic-halt"]
+
+# Target-specific features
+stm32 = []
+atmega = []
+
+[[bin]]
+name = "satellite"
+path = "src/main.rs"

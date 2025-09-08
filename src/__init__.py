@@ -5,7 +5,7 @@ system with priority-based messaging, fault tolerance, and advanced security fea
 
 Modules:
     messaging: Priority-based message scheduling and processing
-    fault_tolerance: Error correction and redundancy mechanisms  
+    fault_tolerance: Error correction and redundancy mechanisms
     security: Cryptography and authentication systems
     bands: Communication frequency band analysis
     utils: Utility functions and helpers
@@ -26,7 +26,7 @@ __license__ = "MIT"
 # Package-level imports for convenience
 from .messaging.priority_scheduler import (
     MessageScheduler,
-    Message, 
+    Message,
     MessagePriority,
     MessageStatus,
     CommunicationBand,
@@ -36,7 +36,7 @@ from .messaging.priority_scheduler import (
 __all__ = [
     "MessageScheduler",
     "Message",
-    "MessagePriority", 
+    "MessagePriority",
     "MessageStatus",
     "CommunicationBand",
     "TimeConstraints"

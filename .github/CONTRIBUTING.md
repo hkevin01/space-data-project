@@ -120,7 +120,7 @@ logger = logging.getLogger(__name__)
 
 class MessagePriority(Enum):
     """Message priority levels for space communication."""
-    
+
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
@@ -128,49 +128,49 @@ class MessagePriority(Enum):
 
 class MessageScheduler:
     """Priority-based message scheduler for space communication.
-    
+
     Implements adaptive scheduling with guaranteed latency requirements
     for different priority levels according to NASA standards.
-    
+
     Attributes:
         max_bandwidth: Maximum available bandwidth in Hz
         priority_queues: Separate queues for each priority level
     """
-    
+
     def __init__(self, max_bandwidth: int = 10000) -> None:
         """Initialize the message scheduler.
-        
+
         Args:
             max_bandwidth: Maximum bandwidth allocation in Hz
-            
+
         Raises:
             ValueError: If max_bandwidth is not positive
         """
         if max_bandwidth <= 0:
             raise ValueError("max_bandwidth must be positive")
-            
+
         self.max_bandwidth = max_bandwidth
         self.priority_queues: Dict[str, List] = {
             priority.value: [] for priority in MessagePriority
         }
         logger.info(f"MessageScheduler initialized with {max_bandwidth}Hz bandwidth")
-    
+
     async def add_message(
-        self, 
-        message: str, 
-        priority: MessagePriority, 
+        self,
+        message: str,
+        priority: MessagePriority,
         bandwidth_required: int
     ) -> bool:
         """Add a message to the appropriate priority queue.
-        
+
         Args:
             message: Message content
             priority: Message priority level
             bandwidth_required: Required bandwidth in Hz
-            
+
         Returns:
             True if message was successfully queued, False otherwise
-            
+
         Raises:
             ValueError: If bandwidth_required is negative
         """
@@ -209,29 +209,29 @@ from src.messaging.priority_scheduler import MessageScheduler, MessagePriority
 
 class TestMessageScheduler:
     """Test suite for MessageScheduler class."""
-    
+
     @pytest.fixture
     def scheduler(self) -> MessageScheduler:
         """Create a MessageScheduler instance for testing."""
         return MessageScheduler(max_bandwidth=1000)
-    
+
     def test_init_valid_bandwidth(self) -> None:
         """Test scheduler initialization with valid bandwidth."""
         scheduler = MessageScheduler(max_bandwidth=5000)
         assert scheduler.max_bandwidth == 5000
         assert len(scheduler.priority_queues) == 3
-    
+
     def test_init_invalid_bandwidth(self) -> None:
         """Test scheduler initialization with invalid bandwidth raises ValueError."""
         with pytest.raises(ValueError, match="max_bandwidth must be positive"):
             MessageScheduler(max_bandwidth=0)
-    
+
     @pytest.mark.asyncio
     async def test_add_high_priority_message(self, scheduler: MessageScheduler) -> None:
         """Test adding high priority message to scheduler."""
         result = await scheduler.add_message(
-            "Critical telemetry", 
-            MessagePriority.HIGH, 
+            "Critical telemetry",
+            MessagePriority.HIGH,
             100
         )
         assert result is True

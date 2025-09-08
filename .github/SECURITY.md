@@ -38,7 +38,7 @@ We are committed to responding to security reports promptly:
 
 - **Initial Response**: Within 24 hours of receiving the report
 - **Triage**: Within 72 hours, we will assess the severity and impact
-- **Resolution Timeline**: 
+- **Resolution Timeline**:
   - Critical vulnerabilities: 7 days
   - High severity: 14 days
   - Medium severity: 30 days

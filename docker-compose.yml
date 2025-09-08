@@ -1,47 +1,54 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # Main application service
-  space-comm-app:
+  # Ground station service
+  ground-station:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
-    container_name: space-comm-app
+      target: runtime
+    container_name: space-comm-ground
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8081:8081"  # Telemetry port
+      - "8082:8082"  # Command port
     environment:
-      - SPACE_COMM_ENV=production
-      - SPACE_COMM_LOG_LEVEL=INFO
-      - REDIS_URL=redis://redis:6379
-      - POSTGRES_URL=postgresql://spaceuser:spacepass@postgres:5432/spacecomm
-      - PROMETHEUS_URL=http://prometheus:9090
+      - RUST_LOG=info
+      - GROUND_STATION_ID=GST-001
+      - TELEMETRY_PORT=8081
+      - COMMAND_PORT=8082
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./config:/app/config:ro
-    depends_on:
-      - redis
-      - postgres
-      - prometheus
     networks:
       - space-comm-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import src.utils.health_check; src.utils.health_check.check()"]
+      test: ["CMD", "echo", "Health check placeholder"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-  # Redis for caching and message queuing
-  redis:
-    image: redis:7-alpine
-    container_name: space-comm-redis
+  # Satellite simulator (for testing)
+  satellite-sim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: space-comm-satellite
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    environment:
+      - RUST_LOG=debug
+      - SATELLITE_ID=SAT-001
+      - GROUND_STATION_ADDR=ground-station:8080
     volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - ground-station
+    networks:
+      - space-comm-network
       - redis_data:/data
     networks:
       - space-comm-network
@@ -87,16 +94,24 @@ services:
       - ./monitoring/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
     networks:
       - space-comm-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -160,7 +175,13 @@ services:
     networks:
       - space-comm-network
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test:
+        [
+          "CMD",
+          "kafka-broker-api-versions",
+          "--bootstrap-server",
+          "localhost:9092",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -172,14 +193,22 @@ services:
     restart: unless-stopped
     ports:
       - "4222:4222"
-      - "8222:8222"  # Monitoring port
+      - "8222:8222" # Monitoring port
     command: ["-js", "-m", "8222"]
     volumes:
       - nats_data:/data
     networks:
       - space-comm-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8222/healthz",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -194,7 +223,7 @@ services:
     restart: unless-stopped
     ports:
       - "8001:8000"
-      - "5678:5678"  # Debug port
+      - "5678:5678" # Debug port
     environment:
       - SPACE_COMM_ENV=development
       - SPACE_COMM_LOG_LEVEL=DEBUG

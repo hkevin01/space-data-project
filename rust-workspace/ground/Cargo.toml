@@ -1,0 +1,70 @@
+[package]
+name = "space-comms-ground"
+version = "0.1.0"
+edition = "2021"
+authors = ["Space Communications Team"]
+description = "Ground station communication system for satellite operations"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/space-comms/ground-station"
+keywords = ["space", "satellite", "ground-station", "communication", "nasa"]
+categories = ["aerospace", "network-programming"]
+
+[dependencies]
+# Shared space communication library
+space-comms-shared = { path = "../shared" }
+
+# Networking and async
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging and error handling
+log = "0.4"
+env_logger = "0.10"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Data processing
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Configuration
+config = "0.14"
+clap = { version = "4.0", features = ["derive"] }
+
+# Monitoring and metrics
+prometheus = "0.13"
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"
+mockall = "0.12"
+tempfile = "3.0"
+
+[features]
+default = ["monitoring"]
+monitoring = ["prometheus"]
+simulation = []
+
+# Optimized release profile for ground operations
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+debug = false
+strip = true
+
+# Development profile with debugging
+[profile.dev]
+opt-level = 0
+debug = true
+overflow-checks = true
+
+[[bin]]
+name = "ground-station"
+path = "src/main.rs"
+
+[[bin]]
+name = "mission-control"
+path = "src/mission_control.rs"
