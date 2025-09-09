@@ -1,0 +1,22 @@
+[package]
+name = "frequency-band-simulation"
+version = "0.1.0"
+edition = "2021"
+authors = ["Space Communications Team"]
+description = "Frequency band simulation for satellite-ground communication systems"
+license = "MIT"
+
+[lib]
+name = "frequency_band_simulation"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+rand = "0.8"
+
+[dev-dependencies]
+approx = "0.5"
+
+[[bin]]
+name = "freq_sim"
+path = "src/main.rs"

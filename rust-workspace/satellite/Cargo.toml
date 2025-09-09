@@ -19,9 +19,9 @@ embedded-hal = { workspace = true }
 cortex-m = { workspace = true }
 
 # RTOS for embedded systems
-embassy-executor = "0.5"
-embassy-time = "0.3"
-embassy-sync = "0.5"
+embassy-executor = { version = "0.5", optional = true }
+embassy-time = { version = "0.3", optional = true }
+embassy-sync = { version = "0.5", optional = true }
 
 # Serialization (no-std compatible)
 serde = { workspace = true, default-features = false }

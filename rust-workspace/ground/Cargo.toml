@@ -33,7 +33,7 @@ config = "0.14"
 clap = { version = "4.0", features = ["derive"] }
 
 # Monitoring and metrics
-prometheus = "0.13"
+prometheus = { version = "0.13", optional = true }
 
 [dev-dependencies]
 # Testing

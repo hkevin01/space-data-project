@@ -1,5 +1,5 @@
 [workspace]
-members = ["satellite", "ground", "shared"]
+members = ["satellite", "ground", "shared", "simulation"]
 
 [workspace.package]
 version = "0.1.0"
