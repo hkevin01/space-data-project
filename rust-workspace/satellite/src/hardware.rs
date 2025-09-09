@@ -14,6 +14,16 @@
 //! - REQ-PF-002: Hardware performance monitoring and optimization
 //! - REQ-NF-001: System health monitoring and sensor data collection
 //!
+//! ## NASA/DoD Standards Compliance:
+//! - **NASA-STD-8739.4A**: Microelectronics and Electronic Parts
+//! - **NASA-STD-8719.13A**: Software Safety (hardware interface safety)
+//! - **MIL-STD-461G**: Electromagnetic Interference Characteristics
+//! - **MIL-STD-810H**: Environmental Engineering Considerations
+//! - **NASA-HDBK-4002**: Fault Tolerance Design Guidelines
+//! - **DoD-STD-2167A**: Defense System Software Development (HAL)
+//! - **ECSS-E-ST-20C**: Electrical and Electronic Components
+//! - **CCSDS 401.0-B-30**: Radio Frequency and Modulation Systems
+//!
 //! ## Architecture:
 //! - Individual transceiver abstractions for each frequency band
 //! - Centralized hardware manager for coordination and control

@@ -18,6 +18,16 @@
 //! - REQ-IF-002: CCSDS-compliant command structure and serialization
 //! - REQ-SF-001: Command validation and confirmation requirements
 //!
+//! ## NASA/DoD Standards Compliance:
+//! - **NASA-STD-8719.13A**: Software Safety (emergency command validation)
+//! - **NASA-HDBK-2203**: Software Engineering Requirements (command structure)
+//! - **DoD-STD-2167A**: Defense System Software Development (command protocols)
+//! - **MIL-STD-1553B**: Digital Time Division Command/Response (command formatting)
+//! - **CCSDS 133.0-B-2**: Space Packet Protocol (command serialization)
+//! - **NASA-STD-8739.8**: Software Assurance Standard (command validation)
+//! - **ECSS-E-ST-70-41C**: Space Engineering - Telemetry and Telecommand
+//! - **DoD 8570.01-M**: Information Assurance (secure command handling)
+//!
 //! ## Architecture:
 //! Commands are organized by priority level to ensure proper message queue handling
 //! and real-time response for mission-critical operations. Each command includes

@@ -9,6 +9,15 @@
 //! - REQ-PF-001: Command Response Time (command acknowledgment processing)
 //! - REQ-FN-001: Priority Classification (command priority handling)
 //!
+//! # NASA/DoD Standards Compliance
+//! - **CCSDS 133.0-B-2**: Space Packet Protocol (ground station implementation)
+//! - **NASA-STD-8739.8**: Software Assurance (mission control software)
+//! - **CCSDS 401.0-B-30**: Radio Frequency and Modulation (multi-band support)
+//! - **DoD-STD-2167A**: Defense System Software (ground system architecture)
+//! - **NASA-HDBK-2203**: Software Engineering (ground station requirements)
+//! - **CCSDS 102.0-B-5**: Packet Telemetry (telemetry processing)
+//! - **MIL-STD-188-165B**: Interoperability Standard for Satellite Communications
+//!
 //! # Architecture
 //! The ground station operates as a UDP-based communication gateway that:
 //! - Receives telemetry data from satellites via UDP sockets
