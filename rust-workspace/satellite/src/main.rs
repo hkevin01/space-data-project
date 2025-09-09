@@ -11,6 +11,12 @@
 //! - Hardware abstraction layer for RF transceivers
 //! - Fault tolerance with watchdog timers
 //! - CCSDS-compliant packet processing
+//!
+//! # Requirements Traceability
+//! - REQ-FN-010: Real-Time Constraints (Embassy async runtime with task timing)
+//! - REQ-NF-002: Memory Constraints (heapless collections, static allocation)
+//! - REQ-NF-005: Cross-Platform Support (ARM Cortex-M target)
+//! - REQ-SF-002: Watchdog Protection (watchdog timer implementation)
 
 #![no_std]
 #![no_main]
@@ -72,6 +78,7 @@ static COMMAND_CHANNEL: CommandChannel = Channel::new();
 static mut SYSTEM_HEALTH: HealthStatus = HealthStatus::Unknown;
 
 /// Main entry point for the satellite system
+/// REQ-FN-010: Real-Time Constraints - Embassy async runtime for deterministic scheduling
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     // Initialize error handling system
@@ -101,21 +108,23 @@ async fn main(spawner: Spawner) {
     }
 
     // Initialize watchdog timer
+    // REQ-SF-002: Watchdog Protection - Hardware and software watchdog timers
     watchdog::initialize();
 
     // Spawn high-priority tasks
-    spawner.spawn(critical_message_processor()).unwrap();
-    spawner.spawn(telemetry_collector()).unwrap();
-    spawner.spawn(command_processor()).unwrap();
+    // REQ-FN-010: Real-Time Constraints - Task spawning with priority-based scheduling
+    spawner.spawn(critical_message_processor()).unwrap();  // Emergency/Critical processing
+    spawner.spawn(telemetry_collector()).unwrap();         // Real-time telemetry
+    spawner.spawn(command_processor()).unwrap();           // Command execution
 
     // Spawn medium-priority tasks
-    spawner.spawn(communication_manager()).unwrap();
-    spawner.spawn(health_monitor()).unwrap();
-    spawner.spawn(error_handling::health_check_task()).unwrap();
+    spawner.spawn(communication_manager()).unwrap();       // RF communication management
+    spawner.spawn(health_monitor()).unwrap();              // System health monitoring
+    spawner.spawn(error_handling::health_check_task()).unwrap(); // Error detection
 
     // Spawn low-priority tasks
-    spawner.spawn(housekeeping_task()).unwrap();
-    spawner.spawn(system_heartbeat()).unwrap();
+    spawner.spawn(housekeeping_task()).unwrap();           // Routine maintenance
+    spawner.spawn(system_heartbeat()).unwrap();            // System heartbeat
 
     // Main loop - should never exit
     loop {
@@ -128,6 +137,9 @@ async fn main(spawner: Spawner) {
 ///
 /// Processes emergency and critical priority messages with minimal latency.
 /// This task has the highest priority and preempts all other tasks.
+/// REQ-FN-002: Emergency Command Set - <1ms processing time
+/// REQ-FN-003: Critical Command Set - <10ms processing time
+/// REQ-FN-010: Real-Time Constraints - Priority-based processing
 #[embassy_executor::task]
 async fn critical_message_processor() {
     let mut queue: PriorityQueue<MAX_QUEUE_SIZE> = PriorityQueue::new();

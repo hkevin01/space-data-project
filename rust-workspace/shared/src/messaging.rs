@@ -3,36 +3,47 @@
 //! This module implements a priority queue system designed for real-time
 //! space communication systems where message prioritization is critical
 //! for mission success.
+//!
+//! # Requirements Traceability
+//! - REQ-FN-001: Priority Classification (MessagePriority enum)
+//! - REQ-FN-009: Message Queue Management (PriorityQueue implementation)
+//! - REQ-FN-010: Real-Time Constraints (timing constraints in max_latency_ms)
 
 use core::cmp::Ordering;
-use serde::{Deserialize, Serialize};
 use heapless::binary_heap::{BinaryHeap, Max};
+use serde::{Deserialize, Serialize};
 
-use crate::error::{Result, SpaceCommError, MemoryErrorType};
-use crate::types::{MessageId, ComponentId, BandType};
+use crate::error::{MemoryErrorType, Result, SpaceCommError};
+use crate::types::{BandType, ComponentId, MessageId};
 
 /// Message priority levels following NASA mission-critical classification
+/// REQ-FN-001: Priority Classification - Five-tier priority system
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum MessagePriority {
     /// Lowest priority - routine housekeeping data
     /// Processing frequency: ~10 Hz
+    /// REQ-FN-006: Low Priority Commands
     Low = 1,
 
     /// Medium priority - normal telemetry and data
     /// Processing frequency: ~100 Hz
+    /// REQ-FN-005: Medium Priority Commands
     Medium = 2,
 
     /// High priority - important system status
     /// Processing frequency: ~500 Hz
+    /// REQ-FN-004: High Priority Commands
     High = 3,
 
     /// Critical priority - emergency commands and alerts
     /// Processing frequency: ~1000 Hz, latency <1ms
+    /// REQ-FN-003: Critical Command Set
     Critical = 4,
 
     /// Emergency priority - life-safety and mission-critical
     /// Processing frequency: immediate, latency <0.5ms
+    /// REQ-FN-002: Emergency Command Set
     Emergency = 5,
 }
 
@@ -49,13 +60,14 @@ impl MessagePriority {
     }
 
     /// Get the maximum acceptable latency in milliseconds
+    /// REQ-FN-010: Real-Time Constraints - Processing latency requirements
     pub const fn max_latency_ms(&self) -> u32 {
         match self {
-            MessagePriority::Low => 1000,      // 1 second
-            MessagePriority::Medium => 100,    // 100 ms
-            MessagePriority::High => 10,       // 10 ms
-            MessagePriority::Critical => 1,    // 1 ms
-            MessagePriority::Emergency => 0,   // Immediate
+            MessagePriority::Low => 10000,   // 10 seconds - REQ-FN-006
+            MessagePriority::Medium => 1000, // 1 second - REQ-FN-005
+            MessagePriority::High => 100,    // 100 ms - REQ-FN-004
+            MessagePriority::Critical => 10, // 10 ms - REQ-FN-003
+            MessagePriority::Emergency => 1, // 1 ms - REQ-FN-002
         }
     }
 
@@ -151,7 +163,9 @@ impl MessagePayload {
             MessagePayload::Command { parameters, .. } => parameters.len(),
             MessagePayload::Status { message, .. } => message.len(),
             MessagePayload::Raw { data } => data.len(),
-            MessagePayload::Emergency { description, data, .. } => description.len() + data.len(),
+            MessagePayload::Emergency {
+                description, data, ..
+            } => description.len() + data.len(),
         }
     }
 
@@ -225,9 +239,9 @@ impl<const N: usize> PriorityQueue<N> {
 
         self.sequence_counter = self.sequence_counter.wrapping_add(1);
 
-        self.heap.push(priority_message).map_err(|_| {
-            SpaceCommError::memory_error(MemoryErrorType::BufferOverflow, Some(N))
-        })
+        self.heap
+            .push(priority_message)
+            .map_err(|_| SpaceCommError::memory_error(MemoryErrorType::BufferOverflow, Some(N)))
     }
 
     /// Remove and return the highest priority message
@@ -273,11 +287,12 @@ impl<const N: usize> PriorityQueue<N> {
 
         while let Some(priority_message) = self.heap.pop() {
             let message_age = current_time_seconds.saturating_sub(
-                priority_message.message.timestamp / 1_000_000_000  // Convert ns to seconds
+                priority_message.message.timestamp / 1_000_000_000, // Convert ns to seconds
             );
 
-            if priority_message.message.ttl_seconds == 0 ||
-               message_age < priority_message.message.ttl_seconds.into() {
+            if priority_message.message.ttl_seconds == 0
+                || message_age < priority_message.message.ttl_seconds.into()
+            {
                 // Message is not expired, keep it
                 if temp_messages.push(priority_message).is_err() {
                     // If we can't store it, we have to drop it (should not happen in normal operation)
@@ -362,7 +377,7 @@ impl QueueStatistics {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{MessageId, ComponentId};
+    use crate::types::{ComponentId, MessageId};
 
     fn create_test_message(priority: MessagePriority, id: u64) -> Message {
         Message {
@@ -372,7 +387,7 @@ mod tests {
             destination: ComponentId::new(2),
             timestamp: 0,
             payload: MessagePayload::Raw {
-                data: heapless::Vec::new()
+                data: heapless::Vec::new(),
             },
             preferred_band: BandType::SBand,
             ttl_seconds: 0,
@@ -394,9 +409,15 @@ mod tests {
         let mut queue: PriorityQueue<10> = PriorityQueue::new();
 
         // Add messages in random order
-        queue.push(create_test_message(MessagePriority::Low, 1)).unwrap();
-        queue.push(create_test_message(MessagePriority::Emergency, 2)).unwrap();
-        queue.push(create_test_message(MessagePriority::Medium, 3)).unwrap();
+        queue
+            .push(create_test_message(MessagePriority::Low, 1))
+            .unwrap();
+        queue
+            .push(create_test_message(MessagePriority::Emergency, 2))
+            .unwrap();
+        queue
+            .push(create_test_message(MessagePriority::Medium, 3))
+            .unwrap();
 
         // Should pop in priority order
         assert_eq!(queue.pop().unwrap().priority, MessagePriority::Emergency);
@@ -409,9 +430,15 @@ mod tests {
         let mut queue: PriorityQueue<10> = PriorityQueue::new();
 
         // Add multiple messages with same priority
-        queue.push(create_test_message(MessagePriority::High, 1)).unwrap();
-        queue.push(create_test_message(MessagePriority::High, 2)).unwrap();
-        queue.push(create_test_message(MessagePriority::High, 3)).unwrap();
+        queue
+            .push(create_test_message(MessagePriority::High, 1))
+            .unwrap();
+        queue
+            .push(create_test_message(MessagePriority::High, 2))
+            .unwrap();
+        queue
+            .push(create_test_message(MessagePriority::High, 3))
+            .unwrap();
 
         // Should pop in FIFO order (first added, first out)
         assert_eq!(queue.pop().unwrap().id.value(), 1);
@@ -423,20 +450,32 @@ mod tests {
     fn test_queue_capacity() {
         let mut queue: PriorityQueue<2> = PriorityQueue::new();
 
-        assert!(queue.push(create_test_message(MessagePriority::Low, 1)).is_ok());
-        assert!(queue.push(create_test_message(MessagePriority::Low, 2)).is_ok());
+        assert!(queue
+            .push(create_test_message(MessagePriority::Low, 1))
+            .is_ok());
+        assert!(queue
+            .push(create_test_message(MessagePriority::Low, 2))
+            .is_ok());
 
         // Third message should fail
-        assert!(queue.push(create_test_message(MessagePriority::Low, 3)).is_err());
+        assert!(queue
+            .push(create_test_message(MessagePriority::Low, 3))
+            .is_err());
     }
 
     #[test]
     fn test_queue_statistics() {
         let mut queue: PriorityQueue<10> = PriorityQueue::new();
 
-        queue.push(create_test_message(MessagePriority::Low, 1)).unwrap();
-        queue.push(create_test_message(MessagePriority::High, 2)).unwrap();
-        queue.push(create_test_message(MessagePriority::Emergency, 3)).unwrap();
+        queue
+            .push(create_test_message(MessagePriority::Low, 1))
+            .unwrap();
+        queue
+            .push(create_test_message(MessagePriority::High, 2))
+            .unwrap();
+        queue
+            .push(create_test_message(MessagePriority::Emergency, 3))
+            .unwrap();
 
         let stats = queue.statistics();
         assert_eq!(stats.total, 3);

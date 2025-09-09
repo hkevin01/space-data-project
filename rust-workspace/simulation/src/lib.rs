@@ -2,18 +2,24 @@
 //!
 //! A comprehensive simulation framework for satellite-ground communication
 //! across different frequency bands with realistic atmospheric effects.
+//!
+//! # Requirements Traceability
+//! - REQ-FN-007: Multi-Band Communication (BandType enum with five frequency bands)
+//! - REQ-FN-008: Frequency Band Simulation (physics-based atmospheric modeling)
+//! - REQ-PF-002: Data Transfer Rates (band-specific maximum data rates)
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Types of frequency bands
+/// REQ-FN-007: Multi-Band Communication - Five frequency bands for space communication
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BandType {
-    KBand,
-    KaBand,
-    SBand,
-    XBand,
-    UHFBand,
+    KBand,   // 20-30 GHz: High data rate, weather-sensitive
+    KaBand,  // 26.5-40 GHz: Maximum data rate, atmospheric effects
+    SBand,   // 2-4 GHz: Reliable, all-weather communication
+    XBand,   // 8-12 GHz: Balanced performance and reliability
+    UHFBand, // 0.3-3 GHz: Most reliable, limited bandwidth
 }
 
 impl std::fmt::Display for BandType {
@@ -45,15 +51,16 @@ pub struct BandCharacteristics {
 }
 
 /// Environmental conditions
+/// REQ-FN-008: Frequency Band Simulation - Atmospheric effects modeling
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnvironmentalConditions {
-    pub rain_rate_mm_hour: f64,
-    pub cloud_cover_percent: f64,
-    pub atmospheric_pressure_mb: f64,
-    pub temperature_celsius: f64,
-    pub humidity_percent: f64,
-    pub ionospheric_activity: f64,
-    pub solar_activity: f64,
+    pub rain_rate_mm_hour: f64,       // Rain attenuation effects
+    pub cloud_cover_percent: f64,     // Cloud absorption
+    pub atmospheric_pressure_mb: f64, // Pressure effects on propagation
+    pub temperature_celsius: f64,     // Temperature-dependent absorption
+    pub humidity_percent: f64,        // Water vapor absorption
+    pub ionospheric_activity: f64,    // Ionospheric scintillation
+    pub solar_activity: f64,          // Solar interference
 }
 
 /// Transmission parameters
@@ -90,9 +97,11 @@ pub struct FrequencyBand {
 
 impl FrequencyBand {
     /// Get standard space communication frequency bands
+    /// REQ-FN-007: Multi-Band Communication - Standard frequency band definitions
+    /// REQ-PF-002: Data Transfer Rates - Band-specific maximum data rates
     pub fn get_standard_bands() -> Vec<FrequencyBand> {
         vec![
-            // K-Band (20-30 GHz)
+            // K-Band (20-30 GHz) - REQ-PF-002: 1000 Mbps clear weather
             FrequencyBand {
                 name: BandType::KBand,
                 frequency_range: FrequencyRange {
@@ -100,13 +109,13 @@ impl FrequencyBand {
                     max_ghz: 30.0,
                 },
                 characteristics: BandCharacteristics {
-                    max_data_rate_mbps: 1000.0,
+                    max_data_rate_mbps: 1000.0, // REQ-PF-002
                     power_efficiency: 0.75,
                     antenna_gain_dbi: 45.0,
                     noise_temperature_k: 500.0,
                 },
             },
-            // Ka-Band (26.5-40 GHz)
+            // Ka-Band (26.5-40 GHz) - REQ-PF-002: 2000 Mbps clear weather
             FrequencyBand {
                 name: BandType::KaBand,
                 frequency_range: FrequencyRange {
@@ -114,13 +123,13 @@ impl FrequencyBand {
                     max_ghz: 40.0,
                 },
                 characteristics: BandCharacteristics {
-                    max_data_rate_mbps: 2000.0,
+                    max_data_rate_mbps: 2000.0, // REQ-PF-002
                     power_efficiency: 0.8,
                     antenna_gain_dbi: 50.0,
                     noise_temperature_k: 600.0,
                 },
             },
-            // S-Band (2-4 GHz)
+            // S-Band (2-4 GHz) - REQ-PF-002: 100 Mbps all weather
             FrequencyBand {
                 name: BandType::SBand,
                 frequency_range: FrequencyRange {
@@ -128,13 +137,13 @@ impl FrequencyBand {
                     max_ghz: 4.0,
                 },
                 characteristics: BandCharacteristics {
-                    max_data_rate_mbps: 100.0,
+                    max_data_rate_mbps: 100.0, // REQ-PF-002
                     power_efficiency: 0.6,
                     antenna_gain_dbi: 25.0,
                     noise_temperature_k: 300.0,
                 },
             },
-            // X-Band (8-12 GHz)
+            // X-Band (8-12 GHz) - REQ-PF-002: 500 Mbps all weather
             FrequencyBand {
                 name: BandType::XBand,
                 frequency_range: FrequencyRange {
@@ -142,7 +151,7 @@ impl FrequencyBand {
                     max_ghz: 12.0,
                 },
                 characteristics: BandCharacteristics {
-                    max_data_rate_mbps: 500.0,
+                    max_data_rate_mbps: 500.0, // REQ-PF-002
                     power_efficiency: 0.7,
                     antenna_gain_dbi: 35.0,
                     noise_temperature_k: 400.0,
