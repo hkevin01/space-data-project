@@ -661,7 +661,7 @@ graph TB
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Rust
 - Docker and Docker Compose
 - Git
 
