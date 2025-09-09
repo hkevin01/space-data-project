@@ -210,7 +210,7 @@ This system is designed for real space missions with:
 ┌─────────────────────────────────────────────────────────────┐
 │                    SPACE COMMUNICATION SYSTEM               │
 ├─────────────────────────────────────────────────────────────┤
-│  SATELLITE SYSTEM          │         GROUND SYSTEM          │
+│     SATELLITE SYSTEM       │         GROUND SYSTEM          │
 │  ┌─────────────────────┐   │   ┌─────────────────────────┐  │
 │  │   Embassy Runtime   │   │   │   Mission Control       │  │
 │  │  ┌───────────────┐  │   │   │  ┌───────────────────┐  │  │
