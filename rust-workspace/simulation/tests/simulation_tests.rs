@@ -8,7 +8,7 @@
 //! - Determinism — identical inputs yield identical outputs
 
 use frequency_band_simulation::{
-    score_bands_for_conditions, BandScore, BandType, EnvironmentalConditions, FrequencyBand,
+    score_bands_for_conditions, BandType, EnvironmentalConditions, FrequencyBand,
     TransmissionParameters,
 };
 
