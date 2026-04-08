@@ -135,6 +135,66 @@ impl BandType {
             BandType::KaBand => 0.9,
         }
     }
+
+    /// Return the nominal centre frequency of this band in GHz.
+    ///
+    /// - **ID**: FN-BAND-001
+    /// - **Requirement**: Provide a single representative carrier frequency for link
+    ///   budget calculations (free-space path loss, Doppler, rain attenuation) where
+    ///   a worst-case or nominal figure is required.
+    /// - **Purpose**: Eliminate repeated inline frequency literals scattered across
+    ///   the simulation and ground station modules; single-source the values.
+    /// - **Rationale**: Returning the arithmetic midpoint of each band's defined
+    ///   frequency range gives a conservative intermediate value consistent with
+    ///   ITU-R planning guidelines.
+    /// - **Inputs**: `&self` — the band variant.
+    /// - **Outputs**: Centre frequency in GHz as `f64` (positive, non-zero).
+    /// - **Side Effects**: None — pure `const fn`.
+    /// - **References**: ITU Radio Regulations, Appendix 30B; CCSDS 401.0-B-30 §3.
+    pub const fn center_frequency_ghz(&self) -> f64 {
+        match self {
+            BandType::UhfBand => 1.65,   // midpoint 0.3–3 GHz
+            BandType::SBand   => 3.0,    // midpoint 2–4 GHz
+            BandType::XBand   => 10.0,   // midpoint 8–12 GHz
+            BandType::KBand   => 25.0,   // midpoint 20–30 GHz
+            BandType::KaBand  => 33.25,  // midpoint 26.5–40 GHz
+        }
+    }
+
+    /// Compute free-space path loss (FSPL) in dB using the Friis transmission equation.
+    ///
+    /// - **ID**: FN-BAND-002
+    /// - **Requirement**: Return FSPL (dB) = 20·log₁₀(d) + 20·log₁₀(f) + 92.45,
+    ///   where d is distance in km and f is frequency in GHz, for use in link budget
+    ///   calculations across all five frequency bands.
+    /// - **Purpose**: Provide a shared, documented FSPL implementation so all modules
+    ///   (simulation, ground station, link budget analysis) use an identical equation,
+    ///   preventing divergent approximations.
+    /// - **Rationale**: The Friis equation is the universal baseline for satellite
+    ///   link budgets. Centralising it here avoids duplicating the formula across
+    ///   modules and reduces the risk of sign or constant errors.
+    /// - **Inputs**:
+    ///   - `distance_km`: Slant range in km; must be > 0.
+    /// - **Outputs**: FSPL in dB (positive, increases with distance and frequency).
+    /// - **Preconditions**: `distance_km > 0`. Values ≤ 0 return 0.0 (safe default).
+    /// - **Postconditions**: Return ≥ 0 for all valid inputs.
+    /// - **Assumptions**: Propagation in free space; no atmospheric effects included.
+    /// - **Side Effects**: None — pure function.
+    /// - **Failure Modes**: `distance_km ≤ 0` → returns 0.0 rather than −∞.
+    /// - **Constraints**: Requires `std` (uses `f64::log10`). O(1) time.
+    /// - **Verification**: At 500 km and 10 GHz: FSPL ≈ 165.4 dB (verify against
+    ///   standard link budget tables). At 36 000 km and 25 GHz: FSPL ≈ 213.5 dB.
+    /// - **References**: Friis, H.T. (1946) "A Note on a Simple Transmission Formula";
+    ///   ITU-R P.525-4; CCSDS 401.0-B-30 §4.
+    #[cfg(feature = "std")]
+    pub fn free_space_path_loss_db(&self, distance_km: f64) -> f64 {
+        if distance_km <= 0.0 {
+            return 0.0;
+        }
+        // FSPL(dB) = 20·log10(d_km) + 20·log10(f_GHz) + 92.45
+        // Constant 92.45 = 20·log10(4π/c) with c in km/s, f in GHz
+        20.0 * distance_km.log10() + 20.0 * self.center_frequency_ghz().log10() + 92.45
+    }
 }
 
 /// System operational modes

@@ -83,10 +83,33 @@ impl Duration {
     }
 }
 
-/// Get current time in nanoseconds since Unix epoch
+/// Retrieve the current wall-clock time in nanoseconds since the Unix epoch.
 ///
-/// This function provides the highest precision timing available on the platform.
-/// For embedded systems without wall clock time, it may return time since boot.
+/// - **ID**: FN-TIME-001
+/// - **Requirement**: Return a monotonically increasing nanosecond timestamp
+///   suitable for message sequencing, TTL evaluation, and latency measurement
+///   (REQ-FN-010 real-time constraints).
+/// - **Purpose**: Centralise time acquisition so all modules use an identical
+///   clock source, preventing skew between independently queried timestamps.
+/// - **Rationale**: Using `SystemTime` on `std` targets provides the highest
+///   platform resolution. On `no_std` embedded targets the function returns a
+///   constant zero pending integration with the hardware RTC; callers must be
+///   aware of this limitation for embedded deployments.
+/// - **Inputs**: None.
+/// - **Outputs**: Nanoseconds since Unix epoch (2000-01-01T00:00:00Z = 0 on
+///   `no_std`); `u64` wraps at ~584 years from epoch.
+/// - **Preconditions**: System clock is set correctly on `std` targets.
+/// - **Postconditions**: Return value ≥ previous return value (monotonically
+///   non-decreasing on well-behaved platforms).
+/// - **Assumptions**: `std::time::SystemTime` is available and reliable on the
+///   target OS; `no_std` targets must provide their own RTC integration.
+/// - **Side Effects**: None — read-only system call.
+/// - **Failure Modes**: Clock not available → returns 0 (safe default, does not
+///   panic; TTL checks treat timestamp 0 as epoch).
+/// - **Constraints**: Resolution: ≥ 1 µs on modern Linux; ≥ 1 ms on Windows.
+///   No heap allocation.
+/// - **Verification**: Call twice in rapid succession; assert `t2 >= t1`.
+/// - **References**: POSIX.1-2017 §2.8.5 (clock resolution); REQ-FN-010.
 pub fn current_time_nanos() -> u64 {
     #[cfg(feature = "std")]
     {

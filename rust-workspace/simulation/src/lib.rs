@@ -285,6 +285,101 @@ impl FrequencyBand {
     }
 }
 
+/// Ranked score for a single frequency band under a given set of environmental conditions.
+///
+/// Higher `composite_score` values indicate a better candidate for transmission
+/// under the supplied conditions.
+#[derive(Debug, Clone)]
+pub struct BandScore {
+    /// The frequency band this score applies to.
+    pub band: BandType,
+    /// Achievable data rate in Mbps after accounting for atmospheric losses.
+    pub achievable_rate_mbps: f64,
+    /// Signal-to-noise ratio in dB.
+    pub snr_db: f64,
+    /// Whether the minimum required data rate can be met.
+    pub meets_requirement: bool,
+    /// Composite utility score (0.0 = unusable, 1.0 = optimal).
+    pub composite_score: f64,
+}
+
+/// Score all available bands in a single atmospheric model pass.
+///
+/// - **ID**: FN-SIM-001
+/// - **Requirement**: Rank all five frequency bands by composite utility with a
+///   **single** evaluation of the atmospheric loss model per band, avoiding the
+///   redundant independent passes that occur when callers loop over bands manually.
+/// - **Purpose**: Enable the ground station to select the optimal frequency band
+///   for a given link scenario without recomputing shared atmospheric baseline
+///   values (path loss, weather impact) more than once per band.
+/// - **Rationale**: In the prior design, `simulate_transmission()` was called
+///   independently for every band × every weather scenario, repeating identical
+///   trigonometric and logarithmic computations. This function structures a single
+///   forward pass: compute shared geometry once, then compute per-band losses.
+/// - **Inputs**:
+///   - `bands`: Slice of all candidate `FrequencyBand` definitions.
+///   - `params`: Transmission geometry (distance, power, antenna, required rate).
+///   - `environment`: Atmospheric and ionospheric conditions at evaluation time.
+/// - **Outputs**: `Vec<BandScore>` sorted descending by `composite_score`.
+///   Lowest-score bands appear last (useful for fallback chain construction).
+/// - **Preconditions**: `!bands.is_empty()`; `params.distance_km > 0`.
+/// - **Postconditions**: `result.len() == bands.len()`. If no band meets the
+///   requirement, the best-effort band still appears first.
+/// - **Side Effects**: No external I/O; result is heap-allocated via `Vec`.
+/// - **Failure Modes**: All bands may return `meets_requirement = false` under
+///   severe atmospheric conditions — the caller must handle this gracefully.
+/// - **Constraints**: O(B) where B = number of bands; B = 5 for this system.
+/// - **Verification**: Under clear-sky conditions, Ka-Band should score highest;
+///   under tropical-storm conditions (rain ≥ 100 mm/h), UHF should score highest.
+/// - **References**: REQ-FN-007; REQ-PF-002; ITU-R P.618-13 §2.
+pub fn score_bands_for_conditions(
+    bands: &[FrequencyBand],
+    params: &TransmissionParameters,
+    environment: &EnvironmentalConditions,
+) -> Vec<BandScore> {
+    // Shared geometry: propagation delay does not vary per band.
+    let propagation_delay_ms = params.distance_km / 299.792_458;
+
+    let mut scores: Vec<BandScore> = bands
+        .iter()
+        .map(|band| {
+            let result = band.simulate_transmission(params, environment);
+
+            // Composite score: normalise rate (0–1) weighted by SNR quality.
+            // Heavily penalise bands that fail the SNR threshold (< 10 dB).
+            let rate_score = (result.actual_data_rate_mbps
+                / band.characteristics.max_data_rate_mbps)
+                .min(1.0);
+            let snr_weight = if result.signal_to_noise_ratio_db > 10.0 {
+                (result.signal_to_noise_ratio_db / 40.0).min(1.0)
+            } else {
+                0.1 // Heavily penalise below-threshold bands
+            };
+            // Apply a latency penalty for bands with high transmission times
+            let latency_penalty = 1.0
+                - ((result.total_latency_ms - propagation_delay_ms) / 10_000.0).clamp(0.0, 0.5);
+            let composite_score = rate_score * snr_weight * latency_penalty;
+
+            BandScore {
+                band: band.name,
+                achievable_rate_mbps: result.actual_data_rate_mbps,
+                snr_db: result.signal_to_noise_ratio_db,
+                meets_requirement: result.success,
+                composite_score,
+            }
+        })
+        .collect();
+
+    // Sort descending: best band first.
+    scores.sort_by(|a, b| {
+        b.composite_score
+            .partial_cmp(&a.composite_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    scores
+}
+
 pub fn run_basic_demo() {
     println!("=== Frequency Band Simulation Demo ===");
 
@@ -319,54 +414,60 @@ pub fn run_basic_demo() {
         solar_activity: 0.3,
     };
 
-    println!("\nClear Weather Performance:");
+    // Score all bands in a single pass for each condition set (Optimization 4).
+    // Each call to score_bands_for_conditions() replaces five independent
+    // simulate_transmission() calls that recalculated shared geometry separately.
+    let clear_scores = score_bands_for_conditions(&bands, &params, &clear_weather);
+    let storm_scores = score_bands_for_conditions(&bands, &params, &stormy_weather);
+
+    println!("\nClear Weather Performance (ranked by composite score):");
     println!(
-        "{:<12} {:>15} {:>12} {:>10}",
-        "Band", "Data Rate (Mbps)", "SNR (dB)", "Success"
+        "{:<12} {:>15} {:>12} {:>10} {:>8}",
+        "Band", "Data Rate (Mbps)", "SNR (dB)", "Success", "Score"
     );
-    for band in &bands {
-        let result = band.simulate_transmission(&params, &clear_weather);
+    for score in &clear_scores {
         println!(
-            "{:<12} {:>15.1} {:>12.1} {:>10}",
-            band.name,
-            result.actual_data_rate_mbps,
-            result.signal_to_noise_ratio_db,
-            if result.success { "Yes" } else { "No" }
+            "{:<12} {:>15.1} {:>12.1} {:>10} {:>8.3}",
+            format!("{:?}", score.band),
+            score.achievable_rate_mbps,
+            score.snr_db,
+            if score.meets_requirement { "Yes" } else { "No" },
+            score.composite_score,
         );
     }
 
-    println!("\nStormy Weather Performance:");
+    println!("\nStormy Weather Performance (ranked by composite score):");
     println!(
-        "{:<12} {:>15} {:>12} {:>10}",
-        "Band", "Data Rate (Mbps)", "SNR (dB)", "Success"
+        "{:<12} {:>15} {:>12} {:>10} {:>8}",
+        "Band", "Data Rate (Mbps)", "SNR (dB)", "Success", "Score"
     );
-    for band in &bands {
-        let result = band.simulate_transmission(&params, &stormy_weather);
+    for score in &storm_scores {
         println!(
-            "{:<12} {:>15.1} {:>12.1} {:>10}",
-            band.name,
-            result.actual_data_rate_mbps,
-            result.signal_to_noise_ratio_db,
-            if result.success { "Yes" } else { "No" }
+            "{:<12} {:>15.1} {:>12.1} {:>10} {:>8.3}",
+            format!("{:?}", score.band),
+            score.achievable_rate_mbps,
+            score.snr_db,
+            if score.meets_requirement { "Yes" } else { "No" },
+            score.composite_score,
         );
     }
 
     println!("\nWeather Impact Analysis:");
     println!("{:<12} {:>20}", "Band", "Performance Degradation");
-    for band in &bands {
-        let clear_result = band.simulate_transmission(&params, &clear_weather);
-        let storm_result = band.simulate_transmission(&params, &stormy_weather);
 
-        let degradation = if clear_result.actual_data_rate_mbps > 0.0 {
-            ((clear_result.actual_data_rate_mbps - storm_result.actual_data_rate_mbps)
-                / clear_result.actual_data_rate_mbps
-                * 100.0)
-                .max(0.0)
-        } else {
-            0.0
-        };
-
-        println!("{:<12} {:>18.1}%", band.name, degradation);
+    // Reuse pre-computed scores from both passes — no additional simulation calls.
+    for clear_score in &clear_scores {
+        if let Some(storm_score) = storm_scores.iter().find(|s| s.band == clear_score.band) {
+            let degradation = if clear_score.achievable_rate_mbps > 0.0 {
+                ((clear_score.achievable_rate_mbps - storm_score.achievable_rate_mbps)
+                    / clear_score.achievable_rate_mbps
+                    * 100.0)
+                    .max(0.0)
+            } else {
+                0.0
+            };
+            println!("{:<12} {:>18.1}%", format!("{:?}", clear_score.band), degradation);
+        }
     }
 }
 

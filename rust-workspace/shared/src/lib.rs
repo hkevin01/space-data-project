@@ -1,14 +1,15 @@
 //! # Space Communications Shared Library
 //!
 //! This library provides shared types, protocols, and utilities for space communication
-//! systems, designed to meet NASA and DoD coding standards.
+//! systems, designed for mission-critical reliability and real-time performance.
 //!
 //! ## Features
-//! - CCSDS-compliant packet structures
-//! - Priority-based messaging protocols
+//! - CCSDS-compliant packet structures with auto-CRC integrity protection
+//! - Priority-based messaging protocols with TTL enforcement
+//! - HMAC-SHA256 command authentication
 //! - Error correction and fault tolerance types
 //! - Security and cryptographic primitives
-//! - NASA/DoD standard data types
+//! - Aerospace-standard data types
 
 #![cfg_attr(feature = "no-std", no_std)]
 #![forbid(unsafe_code)]
@@ -36,5 +37,6 @@ pub mod types;
 pub use commands::{SpaceCommand, CommandBuilder};
 pub use error::{Result, SpaceCommError};
 pub use messaging::{Message, MessagePriority, PriorityQueue};
+pub use security::{AuthTag, CommandAuthenticator, DIGEST_LEN};
 pub use telemetry::{TelemetryData, TelemetryPacket};
 pub use types::{BandType, ComponentId, MessageId, PacketId};

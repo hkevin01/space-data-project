@@ -32,7 +32,14 @@ rust-workspace/
 ├── shared/           # Core messaging and priority system
 ├── satellite/        # Embedded firmware (Embassy async)
 ├── ground/           # Ground station operations
+├── simulation/       # Frequency band + atmospheric simulation
 └── examples/         # Demonstrations and stress tests
+config/
+├── requirements.txt      # Python runtime dependencies
+└── requirements-dev.txt  # Python development dependencies
+scripts/
+└── deprecated/       # One-time migration scripts (archived)
+docs/                 # Architecture, requirements, and compliance docs
 ```
 
 ## 🚀 Quick Start

@@ -228,9 +228,26 @@ impl<const N: usize> PriorityQueue<N> {
         }
     }
 
-    /// Add a message to the queue
+    /// Enqueue a message, maintaining priority-heap ordering.
     ///
-    /// Returns an error if the queue is full.
+    /// - **ID**: FN-MQ-001
+    /// - **Requirement**: Insert `message` into the priority queue while preserving
+    ///   the heap invariant (Emergency messages always dequeue before lower priorities).
+    ///   REQ-FN-009: Message Queue Management.
+    /// - **Purpose**: Feed incoming commands and telemetry into the bounded real-time
+    ///   queue from multiple task contexts.
+    /// - **Inputs**:
+    ///   - `message`: The `Message` to enqueue; must have a valid `priority` field.
+    /// - **Outputs**: `Ok(())` on success; `Err(MemoryError::BufferOverflow)` when
+    ///   the queue is full (capacity = `N`).
+    /// - **Preconditions**: `self.len() < N`.
+    /// - **Postconditions**: `self.len()` is increased by one; internal `sequence_counter`
+    ///   is incremented (wrapping) to preserve FIFO order within equal priorities.
+    /// - **Side Effects**: Mutates `self.heap` and `self.sequence_counter`.
+    /// - **Failure Modes**: Queue full → returns `Err`; never panics.
+    /// - **Constraints**: O(log N) time per insertion; no dynamic allocation.
+    /// - **Verification**: Fuzz inputs at capacity boundary (N-1 and N messages).
+    /// - **References**: REQ-FN-009; ECSS-E-ST-70-41C §6.
     pub fn push(&mut self, message: Message) -> Result<()> {
         let priority_message = PriorityMessage {
             message,
@@ -244,9 +261,56 @@ impl<const N: usize> PriorityQueue<N> {
             .map_err(|_| SpaceCommError::memory_error(MemoryErrorType::BufferOverflow, Some(N)))
     }
 
-    /// Remove and return the highest priority message
+    /// Remove and return the highest priority message (no TTL check).
     pub fn pop(&mut self) -> Option<Message> {
         self.heap.pop().map(|pm| pm.message)
+    }
+
+    /// Remove and return the highest-priority **non-expired** message.
+    ///
+    /// - **ID**: FN-MQ-002
+    /// - **Requirement**: Dequeue the highest-priority message whose TTL has not
+    ///   elapsed, automatically discarding any expired messages encountered first.
+    ///   Satisfies REQ-FN-009 (message queue management) and REQ-FN-010
+    ///   (real-time constraints — stale messages must not consume processing slots).
+    /// - **Purpose**: Enforce message lifetime guarantees so that a command
+    ///   queued during a transient fault is never executed after it becomes
+    ///   operationally invalid.
+    /// - **Inputs**:
+    ///   - `current_time_secs`: Monotonic wall-clock time in whole seconds, used
+    ///     to evaluate whether `message.ttl_seconds` has elapsed. Must not overflow
+    ///     `u64`; use `timestamp / 1_000_000_000` from `time::current_time_nanos()`.
+    /// - **Outputs**: `Some(Message)` — the highest-priority valid message;
+    ///   `None` — queue is empty or all remaining messages are expired.
+    /// - **Preconditions**: `current_time_secs` is monotonically non-decreasing.
+    /// - **Postconditions**: All messages with `ttl_seconds > 0` whose age exceeds
+    ///   `ttl_seconds` have been silently dropped from the queue.
+    /// - **Side Effects**: May remove multiple expired messages from `self.heap`.
+    /// - **Failure Modes**: A clock rollback (non-monotonic `current_time_secs`)
+    ///   will cause no messages to be expired — a safe conservative failure.
+    /// - **Constraints**: O(k log N) where k is the number of expired messages
+    ///   skipped; worst case O(N log N) if queue is entirely stale.
+    /// - **Verification**: Test with a mixture of expired (ttl=1, age=2) and valid
+    ///   messages; assert only valid messages are returned.
+    /// - **References**: REQ-FN-009; REQ-FN-010; ECSS-E-ST-70-41C §6.3.
+    pub fn pop_valid(&mut self, current_time_secs: u64) -> Option<Message> {
+        loop {
+            let pm = self.heap.pop()?;
+            let msg = &pm.message;
+
+            // ttl_seconds == 0 means no expiry; otherwise check elapsed time.
+            if msg.ttl_seconds == 0 {
+                return Some(pm.message);
+            }
+
+            let created_secs = msg.timestamp / 1_000_000_000;
+            let age_secs = current_time_secs.saturating_sub(created_secs);
+
+            if age_secs < u64::from(msg.ttl_seconds) {
+                return Some(pm.message);
+            }
+            // Message is expired; discard and try the next highest-priority item.
+        }
     }
 
     /// Peek at the highest priority message without removing it

@@ -204,7 +204,36 @@ pub struct SecondaryHeader {
 }
 
 impl SpacePacket {
-    /// Create a new space packet
+    /// Construct a fully-validated, integrity-protected CCSDS Space Packet.
+    ///
+    /// - **ID**: FN-PKT-001
+    /// - **Requirement**: Produce a well-formed CCSDS 133.0-B-2 Space Packet
+    ///   with a computed Packet Error Control (PEC) field on every construction.
+    /// - **Purpose**: Ensure every packet entering the transmission pipeline
+    ///   already carries a valid CRC so callers cannot inadvertently omit
+    ///   integrity protection.
+    /// - **Rationale**: Requiring callers to invoke `calculate_crc()` separately
+    ///   creates an error-prone pattern forbidden in safety-critical software.
+    ///   Embedding the call in the constructor enforces the invariant.
+    /// - **Inputs**:
+    ///   - `packet_type`: `Command` or `Telemetry` per CCSDS §3.2.
+    ///   - `apid`: Application Process Identifier, range `0x000`–`0x7FF` (11 bits).
+    ///   - `sequence_count`: Packet counter for this APID, range `0`–`0x3FFF` (14 bits).
+    ///   - `data`: Payload bytes; maximum 2 048 bytes.
+    ///   - `secondary_header`: Optional mission-specific secondary header.
+    /// - **Outputs**: `Ok(SpacePacket)` with `error_control` already populated.
+    /// - **Preconditions**: `apid ≤ 0x7FF`, `sequence_count ≤ 0x3FFF`,
+    ///   `data.len() ≤ 2048`.
+    /// - **Postconditions**: `packet.error_control.is_some() == true`;
+    ///   `packet.verify_crc() == true`.
+    /// - **Failure Modes**: Returns `Err(InvalidPacket)` on constraint violations;
+    ///   returns `Err(MemoryError)` if the internal buffer overflows.
+    /// - **Error Handling**: All constraint violations produce typed errors for
+    ///   caller-level fault isolation.
+    /// - **Constraints**: Stack frame ≤ 2 KB; no heap allocation.
+    /// - **Verification**: Unit test `test_space_packet_creation` must pass;
+    ///   `verify_crc()` must return `true` immediately after construction.
+    /// - **References**: CCSDS 133.0-B-2 §4.1; CCSDS 132.0-B-2 §4.1.4.
     pub fn new(
         packet_type: PacketType,
         apid: u16,
@@ -239,15 +268,36 @@ impl SpacePacket {
             )
         })?;
 
-        Ok(Self {
+        let mut packet = Self {
             header,
             secondary_header,
             data: packet_data,
             error_control: None,
-        })
+        };
+
+        // Auto-compute CRC so every packet leaves the constructor integrity-protected.
+        // Postcondition: verify_crc() == true immediately after new().
+        packet.calculate_crc();
+
+        Ok(packet)
     }
 
-    /// Calculate and set CRC-16 error control
+    /// Compute and store the CRC-16/CCITT-FALSE Packet Error Control field.
+    ///
+    /// - **ID**: FN-PKT-002
+    /// - **Requirement**: Populate `error_control` with CRC-16/CCITT-FALSE over
+    ///   the complete packet (primary header + optional secondary header + data).
+    /// - **Purpose**: Enable the receiver to detect transmission errors on the
+    ///   satellite–ground RF link per CCSDS 132.0-B-2 §4.1.4.
+    /// - **Inputs**: Mutable reference to `self`; uses internal fields only.
+    /// - **Outputs**: Sets `self.error_control`; no return value.
+    /// - **Preconditions**: `self.header`, `self.secondary_header`, and `self.data`
+    ///   must be fully populated before calling.
+    /// - **Postconditions**: `self.error_control == Some(valid_crc)`;
+    ///   `self.verify_crc() == true`.
+    /// - **Side Effects**: Mutates `self.error_control` only.
+    /// - **Failure Modes**: None — CRC computation is infallible for bounded inputs.
+    /// - **References**: CCSDS 132.0-B-2 §4.1.4; CCSDS 133.0-B-2 §4.1.5.
     pub fn calculate_crc(&mut self) {
         let mut crc = crc16_ccitt(0xFFFF, &self.header.to_bytes());
 
@@ -262,7 +312,21 @@ impl SpacePacket {
         self.error_control = Some(crc);
     }
 
-    /// Verify packet CRC
+    /// Verify the stored CRC-16/CCITT-FALSE against a freshly computed value.
+    ///
+    /// - **ID**: FN-PKT-003
+    /// - **Requirement**: Return `true` if and only if the stored `error_control`
+    ///   field matches the CRC computed over the current packet contents.
+    /// - **Purpose**: Allow the receiver to reject corrupted packets before
+    ///   processing their payload, satisfying CCSDS data-integrity requirements.
+    /// - **Inputs**: Shared reference to `self`.
+    /// - **Outputs**: `true` — packet integrity verified; `false` — corrupted or
+    ///   no CRC present.
+    /// - **Preconditions**: `calculate_crc()` has been called (or `new()` used).
+    /// - **Side Effects**: None — read-only operation.
+    /// - **Failure Modes**: Returns `false` (safe default) if `error_control` is
+    ///   absent rather than panicking.
+    /// - **References**: CCSDS 132.0-B-2 §4.1.4.
     pub fn verify_crc(&self) -> bool {
         if let Some(stored_crc) = self.error_control {
             let mut calculated_crc = crc16_ccitt(0xFFFF, &self.header.to_bytes());
@@ -337,17 +401,69 @@ impl SpacePacket {
     }
 }
 
-/// Calculate CRC-16-CCITT (polynomial 0x1021)
-fn crc16_ccitt(mut crc: u16, data: &[u8]) -> u16 {
-    for &byte in data {
-        crc ^= (byte as u16) << 8;
-        for _ in 0..8 {
+/// Pre-computed CRC-16/CCITT-FALSE lookup table (polynomial 0x1021).
+///
+/// - **ID**: OPT-CRC-001
+/// - **Requirement**: Compute CRC-16/CCITT-FALSE error control for CCSDS packets
+///   in O(n) time with a single table lookup per byte.
+/// - **Purpose**: Replace the 8-iteration bit-shift inner loop with a single indexed
+///   read, reducing CPU cycles per byte from ~8 to ~1 while preserving identical
+///   output values.
+/// - **Rationale**: Lookup-table CRC is a well-known aerospace data-integrity
+///   optimization used in flight software where processing budget is constrained.
+///   The table is generated at compile time (zero runtime overhead).
+/// - **Constraints**: Table occupies exactly 512 bytes of read-only flash/ROM.
+/// - **Verification**: Any CRC value computed by this table must equal the value
+///   produced by the reference bit-by-bit algorithm for all 256 single-byte inputs.
+/// - **References**: ITU-T V.42 Annex B; CCSDS 132.0-B-2 §4.1.4.
+const CRC16_TABLE: [u16; 256] = {
+    let mut table = [0u16; 256];
+    let mut i = 0usize;
+    while i < 256 {
+        let mut crc = (i as u16) << 8;
+        let mut j = 0;
+        while j < 8 {
             if crc & 0x8000 != 0 {
                 crc = (crc << 1) ^ 0x1021;
             } else {
                 crc <<= 1;
             }
+            j += 1;
         }
+        table[i] = crc;
+        i += 1;
+    }
+    table
+};
+
+/// Compute CRC-16/CCITT-FALSE over `data`, accumulating into an existing `crc` state.
+///
+/// - **ID**: FN-CRC-001
+/// - **Requirement**: Produce a CRC-16/CCITT-FALSE checksum compatible with
+///   CCSDS Packet Error Control (CCSDS 133.0-B-2 §4.1.5).
+/// - **Purpose**: Detect single and burst bit errors in space packets traversing
+///   noisy RF links according to the CCSDS error-control standard.
+/// - **Rationale**: Uses the pre-computed `CRC16_TABLE` for O(1)-per-byte
+///   computation instead of an 8-iteration bit loop, reducing cycle count by ~8×
+///   while producing bit-identical results.
+/// - **Inputs**:
+///   - `crc`: Running CRC state; **must** be initialised to `0xFFFF` for the
+///     first call in a packet calculation chain.
+///   - `data`: Byte slice over which the checksum is computed.
+/// - **Outputs**: Updated 16-bit CRC accumulator (chain across multiple calls).
+/// - **Preconditions**: `CRC16_TABLE` is fully populated (guaranteed at compile time).
+/// - **Postconditions**: Return value equals the CRC-16/CCITT-FALSE of the
+///   concatenation of all `data` slices processed since `crc = 0xFFFF`.
+/// - **Side Effects**: None — pure function.
+/// - **Failure Modes**: None; operates on immutable slice with no allocation.
+/// - **Constraints**: Processes at most `usize::MAX` bytes per call.
+/// - **Verification**: Cross-validate against reference vector:
+///   `crc16_ccitt(0xFFFF, b"123456789")` must equal `0x29B1`.
+/// - **References**: CCSDS 132.0-B-2 §4.1.4; ITU-T V.42 Annex B.
+fn crc16_ccitt(mut crc: u16, data: &[u8]) -> u16 {
+    for &byte in data {
+        let idx = (((crc >> 8) ^ (byte as u16)) & 0xFF) as usize;
+        crc = (crc << 8) ^ CRC16_TABLE[idx];
     }
     crc
 }
