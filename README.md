@@ -170,17 +170,219 @@ pie title Command Priority Distribution (Mission Scenario)
 
 ## Technology Stack
 
-| Technology | Version | Role | Rationale |
+The table below summarises every dependency and its role. Detailed explanations of the design
+decisions behind each choice follow.
+
+| Technology | Version | Crate(s) | Role |
 |---|---|---|---|
-| Rust | 1.70+ | Systems language | Memory safety, `no_std` support, zero-cost FFI |
-| Embassy | 0.2+ | Embedded async runtime | Cooperative multitasking on Cortex-M without OS |
-| heapless | 0.7 | No-heap data structures | Fixed-size `BinaryHeap` for priority queue on embedded |
-| HMAC + SHA-2 | 0.12 / 0.10 | Message authentication | FIPS 198-1 compliant, `no_std` capable |
-| serde | 1.0 | Serialisation | Zero-copy telecommand encoding/decoding |
-| tokio | 1.36 | Ground async runtime | Concurrent uplink/downlink sessions |
-| rustls | 0.21 | TLS transport | Memory-safe TLS for ground–relay links |
-| criterion | 0.5 | Benchmarking | Statistical micro-benchmark harness |
-| approx | 0.5 | Float assertions | ULP-precise test assertions for link budgets |
+| Rust | 1.70+ | all | Systems language — memory safety + `no_std` |
+| Embassy | 0.2+ | `satellite` | Embedded async executor on Cortex-M |
+| heapless | 0.7 | `shared`, `satellite` | Allocation-free data structures |
+| HMAC + SHA-2 | 0.12 / 0.10 | `shared` | FIPS 198-1 command authentication |
+| serde | 1.0 | `shared`, `simulation` | Packet serialisation / deserialisation |
+| tokio | 1.36 | `ground` | Async I/O for the ground-station process |
+| rustls | 0.21 | `ground` | Memory-safe TLS for relay links |
+| rand | 0.8 | `simulation` | Stochastic atmospheric model |
+| criterion | 0.5 | dev | Statistical micro-benchmarks |
+| approx | 0.5 | dev | ULP-precise float assertions |
+
+---
+
+### Rust
+
+**Why:** Space and defence systems demand both correctness guarantees and low-level hardware
+access. Rust provides compile-time memory safety (no null-pointer dereferences, no
+use-after-free, no data races) without a garbage collector — critical because garbage-collection
+pauses are incompatible with the 1 ms Emergency-priority latency budget. The `no_std` mode lets
+the same codebase compile for a bare-metal satellite microcontroller and a Linux ground server.
+
+**What it does here:** Every crate is written in Rust. The `shared` crate compiles under both
+`std` and `no_std` feature flags, controlled by `Cargo.toml`:
+
+```toml
+[features]
+default = ["std"]
+std     = []
+no-std  = ["heapless/ufmt-impl"]
+```
+
+**How it does it:** The workspace-level `Cargo.toml` sets `unsafe_code = "forbid"` as a lint,
+making any `unsafe` block a compile error. The borrow checker statically proves that the
+priority queue can never be mutated from two threads simultaneously without explicit
+synchronisation. The `const fn` feature is used for compile-time CRC table generation
+(`CRC16_TABLE: [u16; 256]`) and for the ITU-R P.838-3 coefficient array — zero runtime cost.
+
+---
+
+### Embassy
+
+**Why:** The satellite firmware requires concurrent tasks — reading sensors, servicing the RF
+transceiver, running a watchdog timer — but the target microcontroller (ARM Cortex-M4/M7) has
+no operating system. Traditional RTOS approaches require dynamic heap allocation and non-trivial
+porting effort. Embassy provides a cooperative async executor that runs entirely in static memory.
+
+**What it does here:** The `satellite` crate's `main.rs` is an Embassy entry point. Each
+hardware interaction (UART telemetry read, SPI transceiver write, watchdog kick) becomes an
+`async fn` that can yield to other tasks without blocking the processor.
+
+**How it does it:** Embassy uses Rust's `async`/`await` syntax compiled down to state machines
+by `rustc`. There is no heap; all task state lives in statically-sized stack frames. The
+executor polls futures in a cooperative loop, waking them only when hardware interrupts fire —
+meaning the CPU is idle (low-power sleep) whenever no work is pending. The target triple
+`thumbv7em-none-eabihf` tells the linker there is no OS system call layer.
+
+---
+
+### heapless
+
+**Why:** On the satellite's Cortex-M target there is no allocator — `alloc` is not available.
+The priority queue that dispatches commands must still hold up to _N_ messages ranked by
+priority, without ever calling `malloc`. A standard `BinaryHeap<T>` from `std` is unusable.
+
+**What it does here:** `heapless::BinaryHeap<PriorityMessage, Max, N>` backs the
+`PriorityQueue<N>` struct in `shared/src/messaging.rs`. All packet payload buffers
+(`heapless::Vec<u8, 2048>`), command parameter lists (`heapless::Vec<u8, 256>`), and alert
+description strings (`heapless::String<256>`) use heapless types throughout the shared crate.
+
+**How it does it:** `heapless` stores its elements in a fixed-size array on the stack or in a
+`static`. The binary heap invariant (parent ≥ children) is maintained by standard sift-up /
+sift-down operations, identical to `std::BinaryHeap` but bounded at compile time. The generic
+parameter `N` makes the capacity a type-level constant, so exceeding it is a compile-time or
+explicit `Err` at runtime — never a panic, never undefined behaviour.
+
+---
+
+### HMAC + SHA-2 (`hmac` + `sha2` crates)
+
+**Why:** Commands uplinked to a spacecraft must be authenticated. An adversary who can inject
+an unauthenticated `EmergencyAbort` command could destroy a mission. A message authentication
+code (MAC) proves both the identity of the sender (they hold the shared secret key) and the
+integrity of the payload (any bit-flip invalidates the tag). HMAC-SHA256 is the FIPS 198-1
+standard algorithm, widely used in aerospace command authentication.
+
+**What it does here:** `CommandAuthenticator` in `shared/src/security.rs` wraps both crates.
+`sign(key, message) -> AuthTag` computes the 32-byte HMAC tag. `verify(key, message, tag) ->
+bool` recomputes the tag and compares in constant time (no early-exit timing leak).
+
+**How it does it:** HMAC-SHA256 pads the key to the SHA-256 block size (64 bytes), XORs it
+with the `ipad` constant, hashes the concatenation with the message, then XORs the key with
+`opad` and hashes again — a two-pass construction that prevents length-extension attacks.
+Both crates are `no_std` compatible, so authentication runs on the satellite firmware as well
+as on the ground server. An empty key is explicitly rejected (`Err`) to prevent trivially weak
+authentication.
+
+---
+
+### serde
+
+**Why:** Packets and telemetry frames must be serialised to bytes for transmission over the RF
+link and deserialised on the other end. Hand-rolling encoding logic for every struct is
+error-prone and introduces deserialization bugs — a major source of mission failures. `serde`
+provides a derive-macro approach that keeps the canonical type definition and its serialisation
+logic co-located.
+
+**What it does here:** Every public type in `shared` (`Message`, `SpacePacket`,
+`TelemetryPacket`, `SpaceCommand`, `HealthStatus`, etc.) derives `Serialize + Deserialize`.
+The CCSDS `SpacePacket::to_bytes()` calls `header.to_bytes()` (manual big-endian encoding per
+the standard) and then appends the `data` field — with serde used for higher-level diagnostic
+and logging serialisation via `serde_json`.
+
+**How it does it:** The `#[derive(Serialize, Deserialize)]` macro generates trait
+implementations at compile time. No reflection, no vtables, no runtime type information — the
+generated code is equivalent to hand-written match statements over each field. This makes
+encode/decode zero-overhead on release builds.
+
+---
+
+### tokio
+
+**Why:** The ground station must handle multiple simultaneous connections: an uplink session
+receiving commands from mission control, a downlink session receiving telemetry from the
+satellite, optionally a relay to a secondary ground station, and an HTTP health endpoint.
+Blocking one of these on a slow I/O call would stall the entire loop. An async runtime
+multiplexes all connections onto a small thread pool without the overhead of one-thread-per-connection.
+
+**What it does here:** The `ground` crate's `main.rs` runs under the `#[tokio::main]` macro.
+TCP accept loops, TLS handshakes, and CCSDS frame reads are all `async fn` awaited inside
+tokio tasks. The `PriorityQueue` is wrapped in a `tokio::sync::Mutex` so uplink and downlink
+tasks share it safely.
+
+**How it does it:** tokio uses an M:N scheduler — M async tasks mapped onto N OS threads
+(typically one per CPU core). I/O readiness is driven by `epoll` on Linux. When a socket has
+no data, the task is parked (no CPU consumed) until the kernel wakes it via an event. This
+gives the ground station the ability to sustain hundreds of concurrent connections with memory
+proportional to active work, not total connections.
+
+---
+
+### rustls
+
+**Why:** Commands and telemetry transiting the RF-to-internet relay leg must be encrypted and
+authenticated at the transport layer to prevent eavesdropping and man-in-the-middle injection.
+OpenSSL is the traditional choice but it is written in C, has a long history of memory-safety
+CVEs (Heartbleed, etc.), and is difficult to audit. `rustls` provides TLS 1.3 implemented
+entirely in safe Rust.
+
+**What it does here:** The ground-to-relay TCP connection in the `ground` crate wraps its
+`TcpStream` in a `rustls::StreamOwned<ClientConnection, TcpStream>`, giving transparent
+encryption over all CCSDS packet bytes transmitted to the relay server.
+
+**How it does it:** `rustls` implements TLS 1.3 handshake (key exchange via X25519 ECDH,
+authentication via Ed25519 certificates), bulk encryption (AES-256-GCM), and record-layer
+framing in pure safe Rust. It uses the `ring` crate for cryptographic primitives. Because
+there is no `unsafe` in `rustls` itself, entire classes of buffer-overflow and
+use-after-free vulnerabilities are structurally impossible.
+
+---
+
+### rand
+
+**Why:** The atmospheric simulation must model stochastic weather phenomena — rain-cell
+distribution, scintillation variance, ionospheric turbulence — that are inherently random.
+A deterministic sine-wave approximation would under-sample worst-case conditions used in
+link-budget margin planning.
+
+**What it does here:** `simulation/src/atmospheric.rs` uses `rand` to sample rain-rate
+distributions for Monte Carlo link-availability predictions and to generate synthetic
+scintillation time-series for testing fade-margin calculations.
+
+**How it does it:** `rand` separates the RNG algorithm (`ChaCha8Rng` — fast, cryptographically
+secure) from the sampling layer (`distributions::Normal`, `distributions::Uniform`). The
+simulation seeds the RNG from a fixed seed in tests (deterministic) and from
+`rand::thread_rng()` (OS entropy) in production runs.
+
+---
+
+### criterion (dev)
+
+**Why:** The CRC-16 lookup-table optimisation and the single-pass band-scoring refactor
+(`score_bands_for_conditions`) each claim a significant performance improvement. Without a
+statistical benchmarking framework, "it feels faster" is not a measurable claim.
+
+**What it does here:** Micro-benchmarks in the `benches/` directory measure CRC throughput
+(bytes/second before and after the lookup table) and band-scoring latency across queue sizes.
+
+**How it does it:** criterion runs each benchmark in a calibrated loop, collects wall-clock
+samples, computes mean ± standard deviation, and reports regression against a previously saved
+baseline. It uses Welch's t-test to distinguish genuine regressions from measurement noise.
+
+---
+
+### approx (dev)
+
+**Why:** The link-budget calculations (`free_space_path_loss_db`, rain attenuation, SNR) produce
+floating-point results. Comparing floats with `==` is incorrect due to rounding; comparing with
+a hard-coded epsilon is fragile across platforms. `approx` provides ULP (units in the last place)
+and relative-epsilon assertion macros standardised for IEEE 754.
+
+**What it does here:** Simulation integration tests use `assert_relative_eq!(fspl, expected,
+epsilon = 0.01)` to assert that band-scoring results are within 0.01 dB of the expected
+link-budget value, regardless of compiler optimisation level or FPU rounding mode.
+
+**How it does it:** `approx::relative_eq!(a, b, epsilon = e)` computes
+`|a − b| / max(|a|, |b|) < e`, which is scale-invariant and correct for both very large and
+very small floating-point values — unlike an absolute epsilon which would pass accidentally for
+large numbers or fail spuriously for small ones.
 
 ---
 
