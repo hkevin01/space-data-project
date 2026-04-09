@@ -24,6 +24,7 @@
 - [Priority Distribution](#priority-distribution)
 - [Technology Stack](#technology-stack)
 - [Frequency Bands](#frequency-bands)
+- [Advanced RF Techniques](#advanced-rf-techniques)
 - [Setup & Installation](#setup--installation)
 - [Running the Tests](#running-the-tests)
 - [Development Roadmap](#development-roadmap)
@@ -75,6 +76,12 @@ Linux/macOS ground-station software.
 | No-heap satellite crate | ✅ Stable | Embassy async, fully `no_std`, Cortex-M target |
 | FSPL link-budget helper | ✅ Stable | `BandType::free_space_path_loss_db(distance_km)` |
 | Full test suite | ✅ Stable | Unit + integration + stress + simulation tests |
+| Beamforming simulation | ✅ Stable | Phased-array gain, HPBW, null steering (analog/digital/adaptive) |
+| MIMO spatial multiplexing | ✅ Stable | Shannon capacity with Foschini formula, spatial streams, diversity |
+| DSSS spread spectrum | ✅ Stable | Processing gain, jamming margin, LPI spectral density |
+| FHSS anti-jam | ✅ Stable | 128-channel hopping, jam-hit probability, throughput factor |
+| Adaptive Modulation & Coding | ✅ Stable | Link-adaptive MCS selection (BPSK → 256-QAM + FEC) |
+| Polarization diversity | ✅ Stable | Dual-pol isolation, Faraday rotation loss, capacity multiplier |
 
 ---
 
@@ -414,6 +421,152 @@ flowchart LR
 
 ---
 
+## Advanced RF Techniques
+
+The `simulation/src/advanced_rf.rs` module implements six advanced radio-frequency techniques
+that complement the basic band selection model. Each technique is independently configurable and
+can be combined to model a complete waveform stack for a mission-critical satellite link.
+
+### 1. Beamforming
+
+**What it is:** A phased-array technique that steers a focused RF beam toward the target satellite
+or ground station by applying precise phase (and optionally amplitude) weights to each antenna
+element, rather than relying on a single omnidirectional radiator.
+
+**How it works:** For a Uniform Linear Array (ULA) of *N* elements at half-wavelength spacing,
+all elements combine coherently in the desired direction, producing an array gain of
+$G = 10 \cdot \log_{10}(N)$ dBi and a half-power beamwidth of
+$\theta_{3\text{dB}} \approx 0.886 / (N \cdot d/\lambda)$ radians.
+Null steering places a pattern zero toward an interference source.
+
+**Three modes supported:**
+
+| Mode | Null Depth | Notes |
+|---|---|---|
+| Analog | ~25 dB | Phase shifters only; hardware quantisation limits nulls |
+| Digital | ~40 dB | Per-element baseband weights after ADC |
+| Adaptive (MVDR) | ~55 dB | Continuously optimised weights track moving interferers |
+
+**Satellite relevance:** Ka-Band high-gain links require narrow beams (≤ 1°) with active null
+steering to suppress adjacent-satellite interference during station-keeping manoeuvres.
+
+### 2. MIMO (Multiple Input Multiple Output)
+
+**What it is:** Use of multiple antennas at both ends of a link to transmit independent data
+streams (spatial multiplexing) or the same stream redundantly (transmit diversity), improving
+either capacity or reliability without additional spectrum or power.
+
+**How it works:** With *N_s* = min(*N_tx*, *N_rx*) independent channels in a rich scattering
+environment, the Shannon–Foschini capacity is:
+
+$$C = N_s \cdot B \cdot \log_2\!\left(1 + \frac{\text{SNR}}{N_s}\right)$$
+
+For transmit diversity (Alamouti STBC), the diversity order is $N_{tx} \times N_{rx}$ and the
+combined SNR gain is $10 \cdot \log_{10}(N_{tx} \cdot N_{rx})$ dB.
+
+**Three modes supported:** `SpatialMultiplexing`, `TransmitDiversity`, `MassiveMimo`
+(large-scale antenna array with zero-forcing precoding, scales capacity as N_rx streams).
+
+**Satellite relevance:** High-throughput satellites (HTS) use massive MIMO on Ka-Band gateways
+to simultaneously serve hundreds of user beams from a single dish array.
+
+### 3. DSSS — Direct-Sequence Spread Spectrum
+
+**What it is:** A modulation technique that XORs the information signal with a high-rate
+pseudo-noise (PN) spreading code, deliberately spreading the signal energy across a bandwidth
+many times wider than the raw data rate.
+
+**How it works:** The processing gain $G_p = f_{chip} / f_{data}$ (linear) directly translates
+to a jamming margin:
+$$\text{Jam Margin} = G_p - E_b/N_0^{\min} \quad (\text{dB})$$
+The 1023-chip Gold code used in the demo gives $G_p \approx 30.1$ dB, meaning a jammer must
+be 30 dB stronger than the signal to overcome the despreader — and the transmission appears as
+noise below the noise floor to any non-synchronised receiver (LPI property).
+
+**Satellite relevance:** GPS and military SATCOM (MILSTAR, AEHF) rely on DSSS for anti-jam
+resilience. GPS L1 C/A uses a 1.023 Mcps chipping rate over a 1.023 kbps navigation message.
+
+### 4. FHSS — Frequency-Hopping Spread Spectrum
+
+**What it is:** The transmitter rapidly changes carrier frequency according to a
+cryptographically generated pseudo-random sequence shared only with the intended receiver.
+An interceptor or jammer must cover all possible channels simultaneously to be effective.
+
+**How it works:** With *N* channels of bandwidth *B_c*, the total spread bandwidth is
+$N \cdot B_c$ and the processing gain is $10 \cdot \log_{10}(N)$ dB.
+- **Fast hopping** (multiple hops per symbol): symbol energy spread across several channels;
+  a partial-band jammer hitting one channel only corrupts part of the symbol.
+- **Slow hopping** (multiple symbols per hop): simpler implementation; vulnerable to
+  follower jamming if the jammer can track hop transitions.
+
+Probability a given hop hits a jammed channel: $p_{jam} = N_{jammed} / N_{total}$.
+
+**Satellite relevance:** Military UHF SATCOM (MILSTAR LDR/MDR channels) use FHSS for
+anti-intercept communications. 128-channel fast hopping at 1000 hops/s effectively denies
+an adversary any single coherent interception opportunity.
+
+### 5. Adaptive Modulation and Coding (AMC / ACM)
+
+**What it is:** The link continuously measures SNR and selects the highest-order modulation
+scheme and FEC code rate whose required $E_b/N_0$ (with margin) is met by the current link
+quality, maximising spectral efficiency under varying propagation conditions.
+
+**Supported MCS ladder:**
+
+| Modulation | Bits/Symbol | Min Eb/N0 (BER < 10⁻⁶) |
+|---|---|---|
+| BPSK | 1 | 10.5 dB |
+| QPSK | 2 | 10.5 dB |
+| 16-QAM | 4 | 14.5 dB |
+| 64-QAM | 6 | 18.8 dB |
+| 256-QAM | 8 | 24.0 dB |
+
+**FEC rates supported:** 1/2 · 2/3 · 3/4 · 5/6 · 7/8 (coding gains 0.5–3.5 dB).
+
+The algorithm walks from 256-QAM + rate 7/8 downward and selects the first pair with
+≥ 2 dB link margin, ensuring a guard band against sudden fades.
+
+**Satellite relevance:** DVB-S2X (used by commercial HTS and ESA/NASA relay satellites)
+employs ACM to adapt per-frame MCS based on return-channel SNR estimates, delivering
+up to 6× spectral efficiency improvement over fixed QPSK/rate-1/2 waveforms.
+
+### 6. Polarization Diversity
+
+**What it is:** Use of orthogonal electromagnetic field orientations (horizontal/vertical linear
+or right/left circular) on the same frequency to double available channel capacity via
+polarization reuse, or to improve link resilience by combining both polarizations.
+
+**How it works:** Two orthogonal polarizations are theoretically isolated by infinite dB; in
+practice, antenna cross-polarization discrimination (XPD) limits isolation to 25–35 dB for
+well-designed feeds. A dual-polarization link doubles capacity when:
+$$\text{XPD} \geq 20 \text{ dB and polarization mismatch loss} < 1 \text{ dB}$$
+
+Faraday rotation in the ionosphere rotates the polarization plane by an angle proportional
+to the Total Electron Content (TEC) and inversely proportional to frequency squared —
+only significant below ~3 GHz (UHF/S-Band); negligible at X/Ka-Band.
+
+**Satellite relevance:** Intelsat and SES HTS satellites use dual-linear (H+V) polarization
+reuse to serve twice as many beams per transponder. Circular polarization (RHCP/LHCP)
+is preferred on LEO science downlinks to avoid Faraday rotation alignment requirements.
+
+### Combined Advanced-RF Summary (LEO Science Link, X-Band)
+
+Running `cargo run -p frequency-band-simulation` produces a summary of all six techniques
+applied together to a representative 500 km LEO science downlink:
+
+```
+1. BEAMFORMING  — 16-element ULA, Adaptive: 12.0 dBi gain, 3.17° HPBW, 55 dB null
+2. MIMO         — 4×4 Spatial MX, 30 dB SNR: 4 streams, ~4600 Mbps, 4× SISO gain
+3. DSSS         — 1023-chip Gold, 10 Mcps: 30.1 dB Gp, jam-resistant ✓
+4. FHSS         — 128 ch fast hop, 5% jammed: 21.1 dB Gp, 97% throughput, High rating
+5. AMC          — 30 dB SNR → 256-QAM r=7/8: ~3500 Mbps, 7.0 bps/Hz, 8.5 dB margin
+6. POLARIZATION — Dual-Circular, 30 dB XPD: 2× capacity, 0.06 dB pol loss
+```
+
+<div align="right"><a href="#table-of-contents">↑ Back to top</a></div>
+
+---
+
 ## Setup & Installation
 
 ### Prerequisites
@@ -526,6 +679,11 @@ gantt
     section Testing
     Full unit + integration tests  :done,   t1, 2025-01-01, 2025-02-01
     Simulation test suite          :done,   t2, 2025-01-15, 2025-02-15
+    section Advanced RF
+    Beamforming + MIMO simulation   :done,   a1, 2025-03-01, 2026-04-08
+    DSSS + FHSS spread spectrum     :done,   a2, 2025-03-15, 2026-04-08
+    AMC link-adaptive waveforms     :done,   a3, 2025-04-01, 2026-04-08
+    Polarization diversity model    :done,   a4, 2025-04-01, 2026-04-08
     section Upcoming
     AES-256-GCM payload encryption :active, u1, 2025-02-01, 2025-04-01
     Carrier Doppler correction      :        u2, 2025-03-01, 2025-05-01
@@ -558,6 +716,7 @@ rust-workspace/
 ├── simulation/                 # RF propagation simulation (std only)
 │   ├── src/
 │   │   ├── lib.rs              # FrequencyBand, BandScore, score_bands_for_conditions()
+│   │   ├── advanced_rf.rs      # Beamforming, MIMO, DSSS, FHSS, AMC, polarization diversity
 │   │   ├── atmospheric.rs      # RainFadeModel — ITU-R P.618/838
 │   │   ├── bands.rs            # Extended band definitions
 │   │   └── interference.rs     # Interference + Doppler models

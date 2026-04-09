@@ -7,6 +7,12 @@
 //! - REQ-FN-007: Multi-Band Communication (BandType enum with five frequency bands)
 //! - REQ-FN-008: Frequency Band Simulation (physics-based atmospheric modeling)
 //! - REQ-PF-002: Data Transfer Rates (band-specific maximum data rates)
+//! - REQ-FN-009: Advanced RF Signal Processing (beamforming, MIMO, spread spectrum, AMC)
+//! - REQ-FN-010: Anti-Jam / LPI/LPD Communication (DSSS, FHSS)
+//! - REQ-PF-003: Link Capacity Optimisation (AMC, polarization diversity)
+//! - REQ-SE-002: Interference Mitigation (adaptive beamforming, null steering)
+
+pub mod advanced_rf;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
